@@ -1,0 +1,14 @@
+[package]
+authors = ["C J Silverio <ceejceej@gmail.com>"]
+edition = "2018"
+name = "LOUDCRAB"
+version = "0.1.0"
+
+[dependencies]
+anyhow = "1"
+dotenv = "0.15.0"
+markov = "*"
+rand = "0.7.3"
+redis = "0.15.1"
+regex = "1"
+slack = "0.23.0"
