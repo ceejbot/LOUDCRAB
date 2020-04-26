@@ -1,2 +1,6 @@
 /target
+releases
 .env
+*.tar
+*.tar.gz
+build-ecs.sh

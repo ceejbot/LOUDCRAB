@@ -31,6 +31,12 @@ If you gave it a toast channel, you can now see some toasts.
 
 `PRUNE` is an administrative convenience for making LOUDBOT bulk-forget shouts. Put the items you'd like to purge as new-line delimited text in some file, then run `PRUNE /path/to/file`. I need something better here myself so I'll write it soon. I also need a good backup method better than redis dumps.
 
+## Running with Docker
+
+There's a Dockerfile that builds a reasonably tiny alpine run environment for a LOUDBOT. The tradeoff is that you'll need to run the [Rust embedded cross-compilation tools](https://github.com/rust-embedded/cross) yourself to get executables. This is mostly painless. The `build.sh` script shows you how to run it to build gnu-linux as well as alpine-linux targets. (I use this to make the releases. Yes, it should be a makefile.)
+
+The example Docker file takes the required config as build arguments; be careful with that slack api token.
+
 ## License
 
 MIT.
