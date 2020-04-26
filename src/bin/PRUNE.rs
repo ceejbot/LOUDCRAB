@@ -1,3 +1,4 @@
+#![allow(non_snake_case)]
 use anyhow::{Context, Result};
 use dotenv::dotenv;
 use redis::Commands;
