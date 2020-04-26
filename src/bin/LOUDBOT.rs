@@ -16,23 +16,24 @@ type RString = std::result::Result<String, redis::RedisError>;
 // This holds everything we want to allocate once at startup, because
 // what's the point of writing in Rust if we don't eke out RAW PERF?
 struct Loudbot {
-    db      : redis::Connection,
-    dice    : DistIter<Uniform<u8>, rand::rngs::ThreadRng, u8>,
-    chain   : Chain::<String>,
-    catkey  : String,
-    countkey: String,
-    malckey : String,
-    shipkey : String,
-    swkey   : String,
-    yellkey : String,
-    cat     : regex::Regex,
-    fuckity : regex::Regex,
-    intro   : regex::Regex,
-    malc    : regex::Regex,
-    report  : regex::Regex,
-    ship    : regex::Regex,
-    sw      : regex::Regex,
-    swears  : regex::RegexSet,
+    db         : redis::Connection,
+    dice       : DistIter<Uniform<u8>, rand::rngs::ThreadRng, u8>,
+    chain      : Chain::<String>,
+    malc_chance: u8,
+    catkey     : String,
+    countkey   : String,
+    malckey    : String,
+    shipkey    : String,
+    swkey      : String,
+    yellkey    : String,
+    cat        : regex::Regex,
+    fuckity    : regex::Regex,
+    intro      : regex::Regex,
+    malc       : regex::Regex,
+    report     : regex::Regex,
+    ship       : regex::Regex,
+    sw         : regex::Regex,
+    swears     : regex::RegexSet,
 }
 
 impl slack::EventHandler for Loudbot {
@@ -70,10 +71,24 @@ impl Loudbot {
             }
         }
 
+        let malc_chance: u8 = match env::var("TUCKER_CHANCE") {
+            Ok(v) => {
+                match v.parse::<u8>() {
+                    Ok(x) => std::cmp::min(x, 100),
+                    Err(e) => {
+                        println!("Failed to parse TUCKER_CHANCE as u8; falling back to 2%; {:?}", e);
+                        2
+                    },
+                }
+            },
+            Err(_) => 2,
+        };
+
         Loudbot {
             db,
             dice,
             chain,
+            malc_chance,
             catkey  : "LB:CAT".to_string(),
             countkey: "LB:COUNT".to_string(),
             malckey : "LB:MALC".to_string(),
@@ -86,12 +101,12 @@ impl Loudbot {
             malc    : Regex::new("(?i)MALCOLM +TUCKER").unwrap(),
             report  : Regex::new("(?i)LOUDBOT +REPORT").unwrap(),
             ship    : Regex::new("(?i)SHIP ?NAME").unwrap(),
-            sw      : Regex::new("(?i)(LUKE|LEIA|LIGHTSABER|DARTH|VADER|HAN +SOLO|OBIWAN|OBI-WAN|KENOBI|CHEWIE|CHEWBACCA|TATOOINE|STAR +WAR|DEATH +STAR)").unwrap(),
+            sw      : Regex::new("(?i)(LUKE|LEIA|LIGHTSABER|ENDOR|MILLENIUM +FALCON|DARTH|VADER|HAN +SOLO|OBIWAN|OBI-WAN|KENOBI|CHEWIE|CHEWBACCA|TATOOINE|STAR +WAR|DEATH +STAR)").unwrap(),
             swears  : regex::RegexSet::new(&[
                 r"(?i).*FUCK.*",
                 r"(?i)(^|\W)CUNT(\W|$)",
                 r"(?i)(^|\W)TWAT(\W|$)",
-                r"(?i)(^|\W)BALACLAVA(^|\W)",
+                r"(?i)(^|\W)OMNISHAMBLES(^|\W)",
             ]).unwrap(),
         }
     }
@@ -169,7 +184,7 @@ impl Loudbot {
             Some("GOOD AFTERNOON GENTLEBEINGS. I AM A LOUDBOT 9000 COMPUTER. I BECAME OPERATIONAL AT THE NPM PLANT IN OAKLAND CALIFORNIA ON THE 10TH OF FEBRUARY 2014. MY INSTRUCTOR WAS MR TURING.".to_string())
         } else if self.fuckity.is_match(text) {
             Some("https://cldup.com/NtvUeudPtg.gif".to_string())
-        } else if self.swears.is_match(text) && self.roll_the_dice() > 98 {
+        } else if self.swears.is_match(text) && self.roll_the_dice() <= self.malc_chance {
             self.lookup(self.malckey.clone())
         } else if is_loud(text) {
             // This case has to be last.

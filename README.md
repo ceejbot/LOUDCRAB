@@ -15,6 +15,7 @@ Config vars:
 - `SLACK_TOKEN`: Your slack api token. Required.
 - `REDIS_URL`: A URI giving the host:port of your redis. Defaults to `redis://localhost:6379`
 - `WELCOME_CHANNEL`: The human name of the channel LOUDBOT should toast in when it starts up. Optional.
+- `TUCKER_CHANCE`: The percentage chance Malcolm Tucker will be invoked if you swear. Malcolm only appears if certain four-letter words are used, so there is zero chance of sweary gifs in your Slack if you yourselves do not swear.
 
 ## RUNNING
 
@@ -33,7 +34,7 @@ If you gave it a toast channel, you can now see some toasts.
 
 ## Running with Docker
 
-There's a Dockerfile that builds a reasonably tiny alpine run environment for a LOUDBOT. The tradeoff is that you'll need to run the [Rust embedded cross-compilation tools](https://github.com/rust-embedded/cross) yourself to get executables. This is mostly painless. The `build.sh` script shows you how to run it to build gnu-linux as well as alpine-linux targets. (I use this to make the releases. Yes, it should be a makefile.)
+There's a Dockerfile that builds a reasonably tiny alpine run environment for a LOUDBOT. The tradeoff is that you'll need to run the [Rust embedded cross-compilation tools](https://github.com/rust-embedded/cross) yourself to get executables. This is mostly painless: type `make alpine`. `make all` builds darwin, linux gnu, and linux musl (for alpine) targets for you, tars them up, and stashes them in `./releases`.
 
 The example Docker file takes the required config as build arguments; be careful with that slack api token.
 
