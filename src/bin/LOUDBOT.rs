@@ -173,7 +173,12 @@ impl Loudbot {
         let retort: Option<String> = if self.sw.is_match(text) {
             self.lookup(self.swkey.clone())
         } else if self.cat.is_match(text) {
-            self.lookup(self.catkey.clone())
+            // this data is not in shoutcase to start with
+            if let Some(r) = self.lookup(self.catkey.clone()) {
+                Some(r.to_uppercase())
+            } else {
+                None
+            }
         } else if self.malc.is_match(text) {
             Some("https://cldup.com/w_exMqXKlT.gif".to_string())
         } else if self.ship.is_match(text) {
