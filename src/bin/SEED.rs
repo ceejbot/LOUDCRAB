@@ -1,34 +1,35 @@
 use anyhow::{Context, Result};
 use dotenv::dotenv;
-use redis::Commands;
 use regex::Regex;
 use std::env;
 use std::fs::File;
 use std::io::{ BufRead, BufReader };
 use std::path::Path;
 
-type RCount = std::result::Result<u32, redis::RedisError>;
-
 // Message store + other data
 fn seed_from_file(db: &mut redis::Connection, filename: impl AsRef<Path>  + std::fmt::Debug + Copy, key: &str, skip_loud_check: bool) -> Result<u32, redis::RedisError> {
+    let fp = File::open(filename);
+    if fp.is_err() {
+        println!("Skipping {:?}; could not open file for reading.", filename);
+        return Ok(0)
+    }
+
     let punc = Regex::new(r"[\W\d[[:punct:]]]").unwrap();
-    let mut count: u32 = 0;
-    let file = File::open(filename).expect("no such file");
+    let mut pipe = redis::pipe();
+    let file = fp.unwrap();
     let reader = BufReader::new(file);
+
     for line in reader.lines() {
         let text = line.unwrap();
-
         let result = punc.replace_all(&text, "");
         if !skip_loud_check && (result.len() < 3 || result.to_uppercase() != result) {
             continue;
         }
-
-        let res: RCount = db.sadd(key, text);
-        match res {
-            Err(e) => println!("{:?}", e),
-            Ok(i) => { count += i; },
-        }
+        pipe.sadd(key, text);
     }
+
+    let result: Vec<u32> = pipe.query(db)?;
+    let count = result.iter().sum();
     println!("Added {} items from {:#?}", count, filename);
     Ok(count)
 }

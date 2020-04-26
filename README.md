@@ -29,7 +29,7 @@ Config vars:
 
 If you gave it a toast channel, you can now see some toasts.
 
-`PRUNE` is an administrative convenience for making LOUDBOT bulk-forget shouts. Put the items you'd like to purge as new-line delimited text in the file `PRUNES`, then run `PRUNE`. I need something better here myself so I'll write it soon. I also need a good backup method better than redis dumps.
+`PRUNE` is an administrative convenience for making LOUDBOT bulk-forget shouts. Put the items you'd like to purge as new-line delimited text in some file, then run `PRUNE /path/to/file`. I need something better here myself so I'll write it soon. I also need a good backup method better than redis dumps.
 
 ## License
 

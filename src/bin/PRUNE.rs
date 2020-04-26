@@ -45,8 +45,10 @@ fn main() -> Result<()> {
 
     let yellkey = format!("{}:YELLS", redis_prefix);
 
-    prune_from_file(&mut rcon, "PRUNES", &yellkey)
+    for f in std::env::args().skip(1) {
+        prune_from_file(&mut rcon, &f, &yellkey)
         .with_context(|| "Trying to write to redis failed utterly.")?;
+    }
 
     Ok(())
 }
