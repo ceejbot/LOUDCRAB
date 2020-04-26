@@ -1,6 +1,6 @@
 # LOUDCRAB
 
-CRABS ARE VERY LOUD ANIMALS. NO, REALLY. THEY SCUTTLE AT TOP VOLUME!
+CRABS ARE VERY LOUD ANIMALS. NO, REALLY. THEY SCUTTLE AT TOP VOLUME.
 
 LOUDBOT IS A SLACK BOT THAT SHOUTS AT YOU IF YOU SHOUT. IT ALSO RESPONDS TO SOME OTHER PROMPTS BUT IT WOULD SPOIL THE FUN TO DOCUMENT THEM. SHOUTING IS CATHARTIC. CEEJBOT ENJOYS WRITING LOUDBOT IN MANY PROGRAMMING LANGUAGES. IT'S A GOOD WAY TO LEARN TO USE LIBRARIES LIKE THE LOCAL REDIS LIBRARY, AND HOW TO DO BASIC TEXT PROCESSING.
 
@@ -30,7 +30,9 @@ Config vars:
 
 If you gave it a toast channel, you can now see some toasts.
 
-`PRUNE` is an administrative convenience for making LOUDBOT bulk-forget shouts. Put the items you'd like to purge as new-line delimited text in some file, then run `PRUNE /path/to/file`. I need something better here myself so I'll write it soon. I also need a good backup method better than redis dumps.
+ARE YOU UPSET BY WHAT LOUDBOT SHOUTS? LOUDBOT IS YOU.
+
+But sometimes we wish to forget. `PRUNE` is an administrative convenience for making LOUDBOT bulk-forget shouts. Put the items you'd like to purge as new-line delimited text in some file, then run `PRUNE /path/to/file`. I need something better here myself so I'll write it soon. I also need a good backup method better than redis dumps.
 
 ## Running with Docker
 
