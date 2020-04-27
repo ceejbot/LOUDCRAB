@@ -22,7 +22,7 @@ Config vars:
 `cargo build` produces three executables: `LOUDBOT`, `SEED`, and `PRUNE`. Yes, they're all upper-case. We're here to __SHOUT__. You can also choose from the pre-built releases here on GitHub.
 
 1. Create an application in Slack. Name it LOUDBOT or something similar.
-2. Add a bot user to your app and snag its API token. Invite the bot user to a couple of channels.
+2. Add a [classic Slack bot](https://api.slack.com/apps?new_classic_app=1) to your Slack team and snag its API token. Invite the bot user to a couple of channels.
 3. Set up a redis somewhere.
 4. Provide configuration via environment variables somehow.
 5. Run `SEED`. It takes an optional list of file paths, which must be newline-delimited text files. It stores each line as a shout in your backing redis. If you have no seeds, why not use the provided classic set in [`SEEDS`](https://github.com/ceejbot/LOUDCRAB/blob/latest/SEEDS)?
