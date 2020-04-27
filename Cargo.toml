@@ -2,7 +2,7 @@
 authors = ["C J Silverio <ceejceej@gmail.com>"]
 edition = "2018"
 name = "LOUDCRAB"
-version = "0.1.0"
+version = "0.2.0"
 
 [dependencies]
 anyhow = "1"
