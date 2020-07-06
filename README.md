@@ -16,6 +16,7 @@ Config vars:
 - `REDIS_URL`: A URI giving the host:port of your redis. Defaults to `redis://localhost:6379`
 - `WELCOME_CHANNEL`: The human name of the channel LOUDBOT should toast in when it starts up. Optional.
 - `TUCKER_CHANCE`: The percentage chance Malcolm Tucker will be invoked if you swear. Malcolm only appears if certain four-letter words are used, so there is zero chance of sweary gifs in your Slack if you yourselves do not swear.
+- `RUST_LOG`: One of `trace`, `debug`, `info`, `warn`, following [env_logger](https://lib.rs/crates/env_logger) convention.
 
 ## RUNNING
 

@@ -1,17 +1,21 @@
 #![allow(non_snake_case)]
 use anyhow::{Context, Result};
 use dotenv::dotenv;
+use log::{debug, info, warn};
 use markov::Chain;
 use rand::prelude::*;
 use rand::thread_rng;
 use rand::distributions::{DistIter, Uniform};
 use redis::Commands;
-use regex::Regex;
+use regex::{ Regex, RegexSet };
+use simple_logger;
 use slack::{ api, Error, Event, Message, RtmClient };
 use std::env;
 use std::convert::AsRef;
 
 type RString = std::result::Result<String, redis::RedisError>;
+// This pattern depends on the order of the chunks.
+const IGNORE: &str = r"<@\w+>|[\W\d[[:punct:]]]|s+";
 
 // This holds everything we want to allocate once at startup, because
 // what's the point of writing in Rust if we don't eke out RAW PERF?
@@ -26,14 +30,15 @@ struct Loudbot {
     shipkey    : String,
     swkey      : String,
     yellkey    : String,
-    cat        : regex::Regex,
-    fuckity    : regex::Regex,
-    intro      : regex::Regex,
-    malc       : regex::Regex,
-    report     : regex::Regex,
-    ship       : regex::Regex,
-    sw         : regex::Regex,
-    swears     : regex::RegexSet,
+    cat        : Regex,
+    fuckity    : Regex,
+    intro      : Regex,
+    malc       : Regex,
+    report     : Regex,
+    ship       : Regex,
+    ignore     : Regex,
+    sw         : Regex,
+    swears     : RegexSet,
 }
 
 impl slack::EventHandler for Loudbot {
@@ -42,17 +47,17 @@ impl slack::EventHandler for Loudbot {
             Event::Hello => self.maybe_toast(cli),
             Event::Message(ref m) => self.handle_message(cli, m),
             Event::MessageSent(_) => {},
-            _ => {}, // println!("on_event(event: {:?})", event),
+            _ => debug!("on_event(event: {:?})", event),
         };
     }
 
     fn on_close(&mut self, _cli: &RtmClient) {
-        println!("on_close; loudie has no idea what to do here yet");
+        warn!("on_close; loudie has no idea what to do here yet");
         // TODO reconnect
     }
 
     fn on_connect(&mut self, _cli: &RtmClient) {
-        println!("THIS BATTLESTATION WILL BE FULLY OPERATIONAL SHORTLY");
+        info!("THIS BATTLESTATION WILL BE FULLY OPERATIONAL SHORTLY");
     }
 }
 
@@ -69,14 +74,14 @@ impl Loudbot {
             Ok(iter) => {
                 iter.for_each(|token: String| { chain.feed_str(&token); });
             }
-        }
+        };
 
         let malc_chance: u8 = match env::var("TUCKER_CHANCE") {
             Ok(v) => {
                 match v.parse::<u8>() {
                     Ok(x) => std::cmp::min(x, 100),
                     Err(e) => {
-                        println!("Failed to parse TUCKER_CHANCE as u8; falling back to 2%; {:?}", e);
+                        warn!("Failed to parse TUCKER_CHANCE as u8; falling back to 2%; {:?}", e);
                         2
                     },
                 }
@@ -101,7 +106,8 @@ impl Loudbot {
             malc    : Regex::new("(?i)MALCOLM +TUCKER").unwrap(),
             report  : Regex::new("(?i)LOUDBOT +REPORT").unwrap(),
             ship    : Regex::new("(?i)SHIP ?NAME").unwrap(),
-            sw      : Regex::new("(?i)(LUKE|LEIA|LIGHTSABER|ENDOR|MILLENIUM +FALCON|DARTH|VADER|HAN +SOLO|OBIWAN|OBI-WAN|KENOBI|CHEWIE|CHEWBACCA|TATOOINE|STAR +WAR|DEATH +STAR)").unwrap(),
+            ignore  : Regex::new(IGNORE).unwrap(),
+            sw      : Regex::new("(?i)(LUKE|LEIA|SKYWALKER|ORGANA|TARKIN|LIGHTSABER|ENDOR|MILLENIUM +FALCON|DARTH|VADER|HAN +SOLO|OBIWAN|OBI-WAN|KENOBI|CHEWIE|CHEWBACCA|TATOOINE|STAR +WAR|DEATH +STAR)").unwrap(),
             swears  : regex::RegexSet::new(&[
                 r"(?i).*FUCK.*",
                 r"(?i)(^|\W)CUNT(\W|$)",
@@ -157,7 +163,7 @@ impl Loudbot {
         let retort: RString = self.db.srandmember(key);
         match retort {
             Err(e) => {
-                println!("Failed to get a random set member from redis: {:?}", e);
+                warn!("Failed to get a random set member from redis: {:?}", e);
                 None
             },
             Ok(retort) => Some(retort),
@@ -191,7 +197,7 @@ impl Loudbot {
             Some("https://cldup.com/NtvUeudPtg.gif".to_string())
         } else if self.swears.is_match(text) && self.roll_the_dice() <= self.malc_chance {
             self.lookup(self.malckey.clone())
-        } else if is_loud(text) {
+        } else if is_loud(&self.ignore, text) {
             // This case has to be last.
             self.remember(prompt.text.as_ref().unwrap());
             if self.roll_the_dice() > 98 {
@@ -221,7 +227,7 @@ impl Loudbot {
 
     fn yell(&mut self, cli: &RtmClient, prompt: &api::MessageStandard, retort: &str) {
         let channel = prompt.channel.as_ref().unwrap();
-        println!("yelling: {}", retort);
+        info!("yelling: `{}`; prompt: `{}`", retort, prompt.text.as_ref().unwrap());
 
         match send_message(cli, &channel, &retort, prompt.thread_ts.as_ref()) {
             Ok(_) => { },
@@ -231,10 +237,9 @@ impl Loudbot {
     }
 }
 
-fn is_loud(text: &str) -> bool {
-    let punc = Regex::new(r"[\W\d[[:punct:]]]").unwrap();
-    let result = punc.replace_all(text, "");
-    if result.len() < 3 {
+fn is_loud(pattern: &Regex, text: &str) -> bool {
+    let result = pattern.replace_all(text, "");
+    if result.trim().len() < 4 {
         return false
     }
     result.to_uppercase() == result
@@ -260,6 +265,8 @@ pub fn send_message(cli: &RtmClient, channel_id: &str, text: &str, maybe_ts: Opt
 fn main() -> Result<()> {
     dotenv().ok();
 
+    simple_logger::init_by_env();
+
     let slack_token = env::var("SLACK_TOKEN")
         .with_context(|| "You must provide a valid slack api token in the env var SLACK_TOKEN.")?;
 
@@ -271,6 +278,7 @@ fn main() -> Result<()> {
         .with_context(|| format!("Unable to create redis client @ {}", redis_uri))?;
     let rcon =  client.get_connection()
         .with_context(|| format!("Unable to connect to redis @ {}", redis_uri))?;
+    info!("Memory @ {}", redis_uri);
 
     let mut loudie = Loudbot::new(rcon);
     match RtmClient::login_and_run(&slack_token, &mut loudie) {
@@ -287,11 +295,18 @@ mod tests {
 
     #[test]
     fn is_loud_works() {
-        assert!(is_loud("THIS IS LOUD"));
-        assert!(!is_loud("This is not loud"));
-        assert!(is_loud("THIS IS LOUD."));
-        assert!(!is_loud("12345"));
-        assert!(!is_loud("800-555-1212"));
-        assert!(!is_loud("FU!!!!!"));
+        let patt = Regex::new(IGNORE).unwrap();
+
+        assert!(is_loud(&patt, "THIS IS LOUD"));
+        assert!(!is_loud(&patt, "This is not loud"));
+        assert!(is_loud(&patt, "THIS IS LOUD."));
+        assert!(!is_loud(&patt, "12345"));
+        assert!(!is_loud(&patt, "800-555-1212"));
+        assert!(!is_loud(&patt, "FU!!!!!"));
+        assert!(!is_loud(&patt, "<@U123>"));
+        assert!(!is_loud(&patt, "ABC"));
+        assert!(is_loud(&patt, "YOU ARE EXTREMELY SILLY <@U123> OH YEAH"));
+        assert!(!is_loud(&patt, "1234-1249384 <@U123> 912302"));
+        assert!(!is_loud(&patt, "<@U123> ABC"));
     }
 }
