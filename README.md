@@ -6,7 +6,7 @@ LOUDBOT IS A SLACK BOT THAT SHOUTS AT YOU IF YOU SHOUT. IT ALSO RESPONDS TO SOME
 
 ## CONFIGURATION
 
-Configuration is injected from environment variables. LOUDBOT will invoke read a `.env` file at the start of its run, but you can use whatever daemon runner your OS uses to provide env vars.
+Configuration is injected from environment variables. LOUDBOT will invoke read a `.env` file using dotenv at the start of its run, but you can use whatever daemon runner your OS uses to provide env vars.
 
 A backing redis is required to remember what was shouted across runs. LOUDBOT will exit if it can't talk to a redis. Keys are prefixed with `LB:`.
 
