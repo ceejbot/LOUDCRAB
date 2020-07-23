@@ -1,14 +1,13 @@
 #![allow(non_snake_case)]
 use anyhow::{Context, Result};
 use dotenv::dotenv;
-use log::{debug, info, warn};
+use log::{debug, info, warn, error};
 use markov::Chain;
 use rand::prelude::*;
 use rand::thread_rng;
 use rand::distributions::{DistIter, Uniform};
 use redis::Commands;
 use regex::{ Regex, RegexSet };
-use simple_logger;
 use slack::{ api, Error, Event, Message, RtmClient };
 use std::env;
 use std::convert::AsRef;
@@ -27,6 +26,7 @@ struct Loudbot {
     catkey     : String,
     countkey   : String,
     malckey    : String,
+    malccount  : String,
     shipkey    : String,
     swkey      : String,
     yellkey    : String,
@@ -94,21 +94,22 @@ impl Loudbot {
             dice,
             chain,
             malc_chance,
-            catkey  : "LB:CAT".to_string(),
-            countkey: "LB:COUNT".to_string(),
-            malckey : "LB:MALC".to_string(),
-            shipkey : "LB:SHIPS".to_string(),
-            swkey   : "LB:SW".to_string(),
-            yellkey : "LB:YELLS".to_string(),
-            cat     : Regex::new("(?i)CAT +FACT").unwrap(),
-            fuckity : Regex::new("(?i)FUCKITY.?BYE").unwrap(),
-            intro   : Regex::new("(?i)LOUDBOT +INTRODUCE +YOURSELF").unwrap(),
-            malc    : Regex::new("(?i)MALCOLM +TUCKER").unwrap(),
-            report  : Regex::new("(?i)LOUDBOT +REPORT").unwrap(),
-            ship    : Regex::new("(?i)SHIP ?NAME").unwrap(),
-            ignore  : Regex::new(IGNORE).unwrap(),
-            sw      : Regex::new("(?i)(LUKE|LEIA|SKYWALKER|ORGANA|TARKIN|LIGHTSABER|ENDOR|MILLENIUM +FALCON|DARTH|VADER|HAN +SOLO|OBIWAN|OBI-WAN|KENOBI|CHEWIE|CHEWBACCA|TATOOINE|STAR +WAR|DEATH +STAR)").unwrap(),
-            swears  : regex::RegexSet::new(&[
+            catkey    : "LB:CAT".to_string(),
+            countkey  : "LB:COUNT".to_string(),
+            malckey   : "LB:MALC".to_string(),
+            malccount : "LB:MALCCOUNT".to_string(),
+            shipkey   : "LB:SHIPS".to_string(),
+            swkey     : "LB:SW".to_string(),
+            yellkey   : "LB:YELLS".to_string(),
+            cat       : Regex::new("(?i)CAT +FACT").unwrap(),
+            fuckity   : Regex::new("(?i)FUCKITY.?BYE").unwrap(),
+            intro     : Regex::new("(?i)LOUDBOT +INTRODUCE +YOURSELF").unwrap(),
+            malc      : Regex::new("(?i)MALCOLM +TUCKER").unwrap(),
+            report    : Regex::new("(?i)LOUDBOT +REPORT").unwrap(),
+            ship      : Regex::new("(?i)SHIP ?NAME").unwrap(),
+            ignore    : Regex::new(IGNORE).unwrap(),
+            sw        : Regex::new("(?i)(LUKE|LEIA|SKYWALKER|ORGANA|TARKIN|LIGHTSABER|ENDOR|MILLENIUM +FALCON|DARTH|VADER|HAN +SOLO|OBIWAN|OBI-WAN|KENOBI|CHEWIE|CHEWBACCA|TATOOINE|STAR +WAR|DEATH +STAR)").unwrap(),
+            swears    : regex::RegexSet::new(&[
                 r"(?i).*FUCK.*",
                 r"(?i)(^|\W)CUNT(\W|$)",
                 r"(?i)(^|\W)TWAT(\W|$)",
@@ -222,7 +223,11 @@ impl Loudbot {
             Ok(c) => c.to_string(),
             Err(_) => "AN UNKNOWN NUMBER OF".to_string()
         };
-        Some(format!("I HAVE YELLED {} TIMES. I HAVE {} THINGS TO YELL AT YOU.", count, cardinality))
+        let malcolms = match self.db.get::<&str, String>(&self.malccount) {
+            Ok(c) => c,
+            Err(_) => "AN UNKNOWN NUMBER OF".to_string()
+        };
+        Some(format!("I HAVE YELLED {} TIMES. I HAVE {} THINGS TO YELL AT YOU. MALCOLM TUCKER HAS BEEN SUMMONED {} TIMES.", count, cardinality, malcolms))
     }
 
     fn yell(&mut self, cli: &RtmClient, prompt: &api::MessageStandard, retort: &str) {
@@ -283,7 +288,10 @@ fn main() -> Result<()> {
     let mut loudie = Loudbot::new(rcon);
     match RtmClient::login_and_run(&slack_token, &mut loudie) {
         Ok(_) => {}
-        Err(err) => panic!("Error: {}", err),
+        Err(err) => {
+            error!("Caught error from rtm client; intentionally crashing and restarting");
+            panic!("Error: {}", err);
+        }
     }
 
     Ok(())
