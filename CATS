@@ -13,8 +13,8 @@ During the time of the Spanish Inquisition, Pope Innocent VIII condemned cats as
 During the Middle Ages, cats were associated with witchcraft, and on St. John’s Day, people all over Europe would stuff them into sacks and toss the cats into bonfires. On holy days, people celebrated by tossing cats from church towers.
 Cats are North America’s most popular pets: there are 73 million cats compared to 63 million dogs. Over 30% of households in North America own a cat.
 The first cat in space was a French cat named Felicette (a.k.a. “Astrocat”) In 1963, France blasted the cat into outer space. Electrodes implanted in her brains sent neurological signals back to Earth. She survived the trip.
-The group of words associated with cat ( catt, cath, chat, katze ) stem from the Latin catus , meaning domestic cat, as opposed to feles , or wild cat.
-The term “puss” is the root of the principal word for “cat” in the Romanian term pisica and the root of secondary words in Lithuanian ( puz ) and Low German puus . Some scholars suggest that “puss” could be imitative of the hissing sound used to get a cat’s attention. As a slang word for the female pudenda, it could be associated with the connotation of a cat being soft, warm, and fuzzy.
+The group of words associated with cat ( catt, cath, chat, katze ) stem from the Latin catus, meaning domestic cat, as opposed to feles, or wild cat.
+The term “puss” is the root of the principal word for “cat” in the Romanian term pisica and the root of secondary words in Lithuanian ( puz ) and Low German puus. Some scholars suggest that “puss” could be imitative of the hissing sound used to get a cat’s attention. As a slang word for the female pudenda, it could be associated with the connotation of a cat being soft, warm, and fuzzy.
 Approximately 40,000 people are bitten by cats in the U.S. annually.
 According to Hebrew legend, Noah prayed to God for help protecting all the food he stored on the ark from being eaten by rats. In reply, God made the lion sneeze, and out popped a cat.
 A cat’s hearing is better than a dog’s. And a cat can hear high-frequency sounds up to two octaves higher than a human.
@@ -52,7 +52,7 @@ Isaac Newton invented the cat flap. Newton was experimenting in a pitch-black ro
 The world’s rarest coffee, Kopi Luwak, comes from Indonesia where a wildcat known as the luwak lives. The cat eats coffee berries and the coffee beans inside pass through the stomach. The beans are harvested from the cat’s dung heaps and then cleaned and roasted. Kopi Luwak sells for about $500 for a 450 g (1 lb) bag.
 A cat’s jaw can’t move sideways, so a cat can’t chew large chunks of food.
 A cat almost never meows at another cat, mostly just humans. Cats typically will spit, purr, and hiss at other cats.
-        A cat’s back is extremely flexible because it has up to 53 loosely fitting vertebrae. Humans only have 34.
+A cat’s back is extremely flexible because it has up to 53 loosely fitting vertebrae. Humans only have 34.
 Approximately 1/3 of cat owners think their pets are able to read their minds.
 All cats have claws, and all except the cheetah sheath them when at rest.
 Two members of the cat family are distinct from all others: the clouded leopard and the cheetah. The clouded leopard does not roar like other big cats, nor does it groom or rest like small cats. The cheetah is unique because it is a running cat; all others are leaping cats. They are leaping cats because they slowly stalk their prey and then leap on it.
@@ -149,7 +149,7 @@ Cats sleep 16 to 18 hours per day. When cats are asleep, they are still alert to
 Besides smelling with their nose, cats can smell with an additional organ called the Jacobson’s organ, located in the upper surface of the mouth.
 The chlorine in fresh tap water irritates sensitive parts of the cat’s nose. Let tap water sit for 24 hours before giving it to a cat.
 Abraham Lincoln loved cats. He had four of them while he lived in the White House.
-Julius Ceasar, Henri II, Charles XI, and Napoleon were all afraid of cats.
+Julius Caesar, Henri II, Charles XI, and Napoleon were all afraid of cats.
 Cats have an average of 24 whiskers, arranged in four horizontal rows on each side.
 The word “cat” in various languages: French: chat; German: katze; Italian: gatto; Spanish/Portuguese: gato; Yiddish: kats; Maltese: qattus; Swedish/Norwegian: katt; Dutch: kat; Icelandic: kottur; Greek: gata; Hindu: katas; Japanese:neko; Polish: kot; Ukranian: kotuk; Hawiian: popoki; Russian: кошка (koshka); Latin: cattus; Egyptian: mau; Turkish: kedi; Armenian: Gatz; Chinese: mio; Arabic: biss; Indonesian: qitta; Bulgarian: kotka; Malay: kucing; Thai/Vietnamese: meo; Romanian: pisica; Lithuanian: katinas; Czech: kocka; Slovak: macka; Armenian: gatz; Basque: catua; Estonian: kass; Finnish: kissa; Swahili: paka.
 Statistics indicate that animal lovers in recent years have shown a preference for cats over dogs!
@@ -177,10 +177,10 @@ A cat’s whiskers are thought to be a kind of radar, which helps a cat gauge th
 A cat can spend five or more hours a day grooming himself.
 All cats have three sets of long hairs that are sensitive to pressure – whiskers, eyebrows, and the hairs between their paw pads.
 Both humans and cats have identical regions in the brain responsible for emotion.
-A cat’s brain is more similar to a man’s brain than that of a dog.
-A cat has more bones than a human; humans have 206, and the cat – 230.
+A cat’s brain is more similar to a human’s brain than that of a dog.
+A cat has more bones than a human; humans have 206, and the cat 230.
 Cats have 30 vertebrae–5 more than humans have.
-The cat has 500 skeletal muscles (humans have 650).
+The cat has 500 skeletal muscles; humans have 650.
 Cats have 32 muscles that control the outer ear (compared to human’s 6 muscles each). A cat can rotate its ears independently 180 degrees, and can turn in the direction of sound 10 times faster than those of the best watchdog.
 Cats’ hearing stops at 65 khz (kilohertz); humans’ hearing stops at 20 khz.
 In relation to their body size, cats have the largest eyes of any mammal.
@@ -207,7 +207,7 @@ Has your cat ever brought its prey to your door? Cats do that because they regar
 Cats can predict earthquakes. We humans are not 100% sure how they do it. There are several different theories.
 A queen (female cat) can begin mating when she is between 5 and 9 months old.
 A tomcat (male cat) can begin mating when he is between 7 and 10 months old.
-Tomcats can mate at any time, while queens can only mate during a period of time called heat or estrus .
+Tomcats can mate at any time, while queens can only mate during a period of time called heat or estrus.
 Heat occurs several times a year and can last anywhere from 3 to 15 days.
 At 4 weeks, it is important to play with kittens so that they do not develop a fear of people.
 Kittens remain with their mother till the age of 9 weeks.
@@ -269,12 +269,12 @@ A cat uses its whiskers to determine if a space is too small to squeeze through.
 The average house cat spends approximately 10,950 hours purring in a lifetime.
 A cat can live twenty or more years.
 The average age for an indoor cat is 15 years, while the average age for an outdoor cat is only 3 to 5 years.
-The oldest cat on record was Puss, from England, who died in 1939 just one day after her 36th birthday.  (We wish we could have them all that long!)
+The oldest cat on record was Puss, from England, who died in 1939 just one day after her 36th birthday. (We wish we could have them all that long!)
 Most cats have no eyelashes.
 Cat’s fur easily becomes charged with electricity and sparks can be seen if their fur is rubbed in the dark.
 Cats purr at 26 cycles per second, the same as an idling diesel engine.
 A cat cannot see directly under its nose.
-If your cat is near you, and her tail is quivering, this is the greatest expression of love your cat can give you.   If her tail starts thrashing, her mood has changed — Time to distance yourself from her.
+If your cat is near you, and her tail is quivering, this is the greatest expression of love your cat can give you.  If her tail starts thrashing, her mood has changed — Time to distance yourself from her.
 A cat keeps purring, no matter if it is inhaling or exhaling.
 Cats have five toes on each front paw, but only four toes on each back paw.
 A cat’s arching back is part of a complex body language system.
@@ -292,28 +292,28 @@ Calico cats are almost always female.
 Cats knead with their paws when they’re happy.
 During her productive life, one female cat could have more than 100 kittens.
 In 1952, a Texas Tabby named Dusty set the record by having more than 420 kittens before having her last litter at age 18.
-The largest known litter (with all surviving) was that of a Persian in South Africa named Bluebell.  Bluebell gave birth to 14 kittens in one litter!
+The largest known litter (with all surviving) was that of a Persian in South Africa named Bluebell. Bluebell gave birth to 14 kittens in one litter!
 A single pair of cats and their kittens can produce as many as 420,000 kittens in just 7 years.
 Cats have 290 bones in their bodies, and 517 muscles.
-A cat’s normal body temperature is 101.5 degrees.  This is slightly warmer than humans.
-A falling cat will always right itself in a precise order.  First the head will rotate, then the spine will twist and the rear legs will align, then the cat will arch its back to lessen the impact of the landing.
-Give your cat a quality scratching post to deter her from scratching your furniture.  Still scratching?  Try putting lemon scent or orange scent on the area.  Cats hate these smells.
+A cat’s normal body temperature is 101.5 degrees. This is slightly warmer than humans.
+A falling cat will always right itself in a precise order. First the head will rotate, then the spine will twist and the rear legs will align, then the cat will arch its back to lessen the impact of the landing.
+Give your cat a quality scratching post to deter her from scratching your furniture. Still scratching? Try putting lemon scent or orange scent on the area. Cats hate these smells.
 According to myth, a cat sleeping with all four paws tucked under means cold weather is coming.
 Egyptians shaved their eyebrows as a sign of mourning when they lost a beloved cat.
-Cats get their sense of security from your voice.  Talk to your cats!  And be mindful of your tone of voice.  Cats know when you’re yelling at them (though they may not care).
+Cats get their sense of security from your voice. Talk to your cats! And be mindful of your tone of voice. Cats know when you’re yelling at them (though they may not care).
 The more cats are spoken to, the more they will speak to you.
-Cats are partially color blind.   They have the equivalency of human red/green color blindness.  (Reds appear green and greens appear red; or shades thereof.)
-Cats don’t see “detail” very well.  To them, their person may appear hazy when standing in front of them.
-Cats can see up to 120 feet away.   Their peripheral vision is about 285 degrees.
-Cats need 1/6th the amount of light that humans do to see.  Their night vision is amazing!
+Cats are partially color blind.  They have the equivalency of human red/green color blindness. (Reds appear green and greens appear red; or shades thereof.)
+Cats don’t see “detail” very well. To them, their person may appear hazy when standing in front of them.
+Cats can see up to 120 feet away.  Their peripheral vision is about 285 degrees.
+Cats need 1/6th the amount of light that humans do to see. Their night vision is amazing!
 A group of kittens is called a “kindle.”
 A group of grown cats is called a “clowder.”
-Have you ever tried to feed your cat food that was just taken out of the refrigerator?  Most cats prefer their food at room temperature, and will boldly REFUSE any food that is too cold or too hot.
-Never feed your cat dog food.   Cats need five times more protein than dogs do.
+Have you ever tried to feed your cat food that was just taken out of the refrigerator? Most cats prefer their food at room temperature, and will boldly REFUSE any food that is too cold or too hot.
+Never feed your cat dog food.  Cats need five times more protein than dogs do.
 Cats are more active during the evening hours.
 Cats spend 30% of their waking hours grooming themselves.
-According to the Guinness Book of World Records, the heaviest cat on record was Himmy, an Australian cat, who weighed 46 pounds, 15.25 ounces in 1986.  Himmy’s waist was 33 inches!  The previous record-holder had been Spice, a ginger-and-white tom cat from Connecticut, who weighed 43 pounds when he died in 1977.
-Cats love high places.  They share this love with leopards and jaguars, who sleep in trees.  If a cat begins to fall, his inner ear canal (which controls balance) will help him right himself and land on his feet.
-Domestic cats are essentially loners.   When placed in a group, they develop their own hierarchy.  As long as there is plenty of food on hand, a cat can learn to share its domain with other cats.
+According to the Guinness Book of World Records, the heaviest cat on record was Himmy, an Australian cat, who weighed 46 pounds, 15.25 ounces in 1986. Himmy’s waist was 33 inches! The previous record-holder had been Spice, a ginger-and-white tom cat from Connecticut, who weighed 43 pounds when he died in 1977.
+Cats love high places. They share this love with leopards and jaguars, who sleep in trees. If a cat begins to fall, his inner ear canal (which controls balance) will help him right himself and land on his feet.
+Domestic cats are essentially loners.  When placed in a group, they develop their own hierarchy. As long as there is plenty of food on hand, a cat can learn to share its domain with other cats.
 Unlike humans and dogs, cats do not suffer a lot from loneliness. It is a mistake to project our social feelings onto our cats. Cats are social to a degree, but they are far more concerned with territorial issues than we can even imagine.
-Cats have a weak sense of taste. They have only 473 taste buds, humans have 9,000.
+Cats have a weak sense of taste. They have only 473 taste buds. Humans have 9,000.
