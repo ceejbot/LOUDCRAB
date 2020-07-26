@@ -1,5 +1,6 @@
 [package]
 authors = ["C J Silverio <ceejceej@gmail.com>"]
+default-run = "LOUDBOT"
 edition = "2018"
 name = "LOUDCRAB"
 version = "0.3.0"
@@ -12,4 +13,9 @@ rand = "0.7.3"
 redis = "0.17.0"
 regex = "1"
 simple_logger = "1"
-slack_api = { version = "0.23.1", features = [ "sync", "reqwest_blocking" ] }
+smol = "*"
+tide = "*"
+
+[dependencies.slack_api]
+features = ["sync", "reqwest_blocking"]
+version = "0.23.1"
