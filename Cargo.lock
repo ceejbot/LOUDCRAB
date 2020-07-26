@@ -11,6 +11,8 @@ dependencies = [
  "rand",
  "redis",
  "regex",
+ "serde",
+ "serde_json",
  "simple_logger",
  "slack_api",
  "smol",

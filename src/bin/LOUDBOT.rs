@@ -9,18 +9,27 @@ use rand::distributions::Uniform;
 use redis::AsyncCommands;
 use redis::aio::MultiplexedConnection;
 use regex::{ Regex, RegexSet };
+use serde::{ Deserialize, Serialize };
 use slack_api::sync as slack;
 use slack::chat::PostMessageRequest;
 use std::env;
 use std::convert::AsRef;
+use tide::{Body, Request, Response};
 
 type BoxedError = Box<dyn std::error::Error + Send + Sync + 'static>;
-
 type RString = std::result::Result<String, redis::RedisError>;
 
 // This pattern depends on the order of the chunks.
 const IGNORE: &str = r":\w+:|<@\w+>|[\W\d[[:punct:]]]|s+";
 const SW: &str = r"\b(?i)(LUKE|LEIA|SKYWALKER|ORGANA|TARKIN|LIGHTSABER|ENDOR|MILLENIUM +FALCON|DARTH|VADER|HAN +SOLO|OBIWAN|OBI-WAN|KENOBI|CHEWIE|CHEWBACCA|TATOOINE|STAR +WARS?|DEATH +STAR)\b";
+
+fn is_loud(pattern: &Regex, text: &str) -> bool {
+    let result = pattern.replace_all(text, "");
+    if result.trim().len() < 4 {
+        return false
+    }
+    result.to_uppercase() == result
+}
 
 const YELLS    : &str = "LB:YELLS";
 const STARS    : &str = "LB:SW";
@@ -177,7 +186,7 @@ impl Loudbot {
             self.lookup(MALCOLM).await
         } else if is_loud(&self.ignore, text) {
             // This case has to be last.
-            self.remember(prompt.text.as_ref().unwrap());
+            self.remember(prompt.text.as_ref().unwrap()).await;
             if self.roll_the_dice() > 98 {
                 self.lookup(YELLS).await
                 // Some(self.chain.generate_str())
@@ -188,7 +197,7 @@ impl Loudbot {
             None
         };
         if let Some(r) = retort {
-            self.yell(prompt, &r);
+            self.yell(prompt, &r).await;
         }
     }
 
@@ -252,7 +261,7 @@ impl Loudbot {
     }
 }
 
-async fn incoming(req: tide::Request<Loudbot>) -> tide::Result<String> {
+async fn ping(req: tide::Request<Loudbot>) -> tide::Result<String> {
     let loudie = req.state();
     let y = loudie.lookup(YELLS).await;
     if let Some(yell) = y {
@@ -263,14 +272,59 @@ async fn incoming(req: tide::Request<Loudbot>) -> tide::Result<String> {
     }
 }
 
-fn is_loud(pattern: &Regex, text: &str) -> bool {
-    let result = pattern.replace_all(text, "");
-    if result.trim().len() < 4 {
-        return false
-    }
-    result.to_uppercase() == result
+async fn incoming(mut req: tide::Request<Loudbot>) -> tide::Result<Response> {
+    // if the message has a challenge parameter, respond immediately with 200 the challenge echoed back
+    // otherwise...
+    // respond with 200 OK immediately
+    // process message
+    // let loudie = req.state();
+    let body: serde_json::Value = req.body_json().await?;
+    let response = match body["type"].as_str() {
+        Some("url_verification") => {
+            let retort = handle_challenge(body);
+            let mut res = Response::new(200);
+            res.set_body(Body::from_json(&retort)?);
+            res
+        },
+        Some(v) => {
+            info!("unhandled type: {}", v);
+            let mut res = Response::new(501);
+            res.set_body("unimplemented");
+            res
+        },
+        None => {
+            dbg!(&body);
+            let mut res = Response::new(418);
+            res.set_body("I'm a teapot");
+            res
+        }
+    };
+    Ok(response)
 }
 
+#[derive(Serialize, Debug)]
+struct ChallengeResponse {
+    challenge: String
+}
+
+fn handle_challenge(body: serde_json::Value) -> ChallengeResponse {
+    let known_token = env::var("VERIFICATION_TOKEN").ok();
+    match known_token {
+        Some(expected) => {
+            let verification = body["token"].as_str();
+            if verification.unwrap() == expected {
+                ChallengeResponse { challenge: body["challenge"].as_str().unwrap().to_string() }
+            } else {
+                info!("{} != {}", verification.unwrap(), expected);
+                ChallengeResponse { challenge: "failed".to_string() }
+            }
+        },
+        None => {
+            error!("LOUDBOT misconfigured: no verification token provided in VERIFICATION_TOKEN env var");
+            ChallengeResponse { challenge: "app-misconfigured".to_string() }
+        }
+    }
+}
 
 fn main() -> Result<(), BoxedError> {
     dotenv().ok();
@@ -279,28 +333,21 @@ fn main() -> Result<(), BoxedError> {
 
     let slack_token = env::var("SLACK_TOKEN")
         .with_context(|| "You must provide a valid slack api token in the env var SLACK_TOKEN.")?;
-
-    let redis_uri = match env::var("REDIS_URL") {
-        Ok(v) => v,
-        Err(_) => "redis://127.0.0.1:6379".to_string(),
-    };
-
+    let redis_uri = env::var("REDIS_URL").ok().unwrap_or_else(||  "redis://127.0.0.1:6379".to_string());
+    info!("BRAIN @ {}", redis_uri);
     let host = env::var("HOST").ok().unwrap_or_else(|| "localhost".to_string());
     let port = env::var("PORT").ok().unwrap_or_else(|| "5000".to_string());
 
-    // set up web server to receive incoming events from slack
-    // authenticate and log into slack
     smol::run(async {
-        info!("BRAIN @ {}", redis_uri);
-
-        let mut loudie = Loudbot::new(slack_token,redis_uri).await.unwrap();
+        let loudie = Loudbot::new(slack_token,redis_uri).await.unwrap();
         loudie.maybe_toast().await;
 
         let mut app = tide::with_state(loudie);
+        app.at("/loudbot/ping").get(ping);
+        app.at("/loudbot/incoming").post(incoming);
+
         let addr = format!("{}:{}", host, port);
         info!("LOUDBOT TUNED FOR SHOUTS COMING IN ON {}", &addr);
-
-        app.at("/incoming").get(incoming);
         app.listen(addr.clone()).await.unwrap();
     });
 
