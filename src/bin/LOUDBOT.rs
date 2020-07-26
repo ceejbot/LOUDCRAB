@@ -14,7 +14,7 @@ use slack_api::sync as slack;
 use slack::chat::PostMessageRequest;
 use std::env;
 use std::convert::AsRef;
-use tide::{Body, Request, Response};
+use tide::{Body, Request, Response, StatusCode};
 
 type BoxedError = Box<dyn std::error::Error + Send + Sync + 'static>;
 type RString = std::result::Result<String, redis::RedisError>;
@@ -265,7 +265,6 @@ async fn ping(req: tide::Request<Loudbot>) -> tide::Result<String> {
     let loudie = req.state();
     let y = loudie.lookup(YELLS).await;
     if let Some(yell) = y {
-        loudie.send_message("#rubberduck", &yell, None);
         Ok(yell)
     } else {
         Ok("failed to find yell".to_string())
