@@ -4,3 +4,4 @@ releases
 *.tar
 *.tar.gz
 build-ecs.sh
+fixtures
