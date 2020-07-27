@@ -362,14 +362,15 @@ fn main() -> Result<(), BoxedError> {
     info!("BRAIN @ {}", redis_uri);
     let host = env::var("HOST").ok().unwrap_or_else(|| "localhost".to_string());
     let port = env::var("PORT").ok().unwrap_or_else(|| "5000".to_string());
+    let prefix = env::var("ROUTE_PREFIX").ok().unwrap_or_else(|| "".to_string());
 
     smol::run(async {
         let loudie = Loudbot::new(slack_token, verification, redis_uri).await.unwrap();
         loudie.maybe_toast().await;
 
         let mut app = tide::with_state(loudie);
-        app.at("/loudbot/ping").get(ping);
-        app.at("/loudbot/incoming").post(incoming);
+        app.at(&format!("{}/monitor/ping", prefix)).get(ping);
+        app.at(&format!("{}/incoming", prefix)).post(incoming);
 
         let addr = format!("{}:{}", host, port);
         info!("LOUDBOT TUNED FOR SHOUTS COMING IN ON {}", &addr);
