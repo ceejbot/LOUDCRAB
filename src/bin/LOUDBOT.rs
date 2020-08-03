@@ -1,22 +1,21 @@
 #![allow(non_snake_case)]
-use anyhow::{Context, Result, Error};
+use anyhow::{Context, Error, Result};
 use dotenv::dotenv;
-use log::{debug, info, warn, error};
-use markov::Chain;
+use log::{error, info, warn};
+// use markov::Chain;
 use rand::distributions::Uniform;
 use rand::prelude::*;
-use rand::thread_rng;
 use redis::aio::MultiplexedConnection;
 use redis::AsyncCommands;
-use regex::{ Regex, RegexSet };
-use serde::{ Deserialize, Serialize };
-use slack_api::sync as slack;
+use regex::{Regex, RegexSet};
+use serde::{Deserialize, Serialize};
 use slack::chat::PostMessageRequest;
-use slack::{ Message, MessageStandard };
+use slack::{Message, MessageStandard};
+use slack_api::sync as slack;
 use std::collections::HashMap;
 use std::convert::AsRef;
 use std::env;
-use tide::{Body, Request, Response, StatusCode};
+use tide::{Body, Response};
 
 type BoxedError = Box<dyn std::error::Error + Send + Sync + 'static>;
 type RString = std::result::Result<String, redis::RedisError>;
@@ -28,7 +27,7 @@ const SW: &str = r"\b(?i)(LUKE|LEIA|SKYWALKER|ORGANA|TARKIN|LIGHTSABER|ENDOR|MIL
 fn is_loud(pattern: &Regex, text: &str) -> bool {
     let result = pattern.replace_all(text, "");
     if result.trim().len() < 4 {
-        return false
+        return false;
     }
     result.to_uppercase() == result
 }
@@ -43,32 +42,34 @@ const MALCCOUNT: &str = "LB:MALCCOUNT";
 
 // This holds everything we want to allocate once at startup, because
 // what's the point of writing in Rust if we don't eke out RAW PERF?
-
 #[derive(Clone)]
 struct Loudbot {
-    slack_token: String, // our API token, which we send to slack
+    slack_token : String,  // our API token, which we send to slack
     verification: String, // the verification token Slack will pass to us
+    malc_chance : u8,
+    db          : MultiplexedConnection,
+    cat         : Regex,
+    fuckity     : Regex,
+    intro       : Regex,
+    malc        : Regex,
+    report      : Regex,
+    ship        : Regex,
+    ignore      : Regex,
+    sw          : Regex,
+    swears      : RegexSet,
     // chain      : Chain::<String>,
-    malc_chance: u8,
-    db         : MultiplexedConnection,
-    cat        : Regex,
-    fuckity    : Regex,
-    intro      : Regex,
-    malc       : Regex,
-    report     : Regex,
-    ship       : Regex,
-    ignore     : Regex,
-    sw         : Regex,
-    swears     : RegexSet,
 }
 
 impl Loudbot {
-    pub async fn new(slack_token: String, verification: String, redis_uri: String) -> Result<Loudbot, BoxedError> {
-
+    pub async fn new(
+        slack_token: String,
+        verification: String,
+        redis_uri: String,
+    ) -> Result<Loudbot, BoxedError> {
         let client = redis::Client::open(redis_uri.as_ref())
-            .with_context(|| format!("Unable to create redis client @ {}", redis_uri)).unwrap();
-        let db = client
-            .get_multiplexed_async_std_connection().await?;
+            .with_context(|| format!("Unable to create redis client @ {}", redis_uri))
+            .unwrap();
+        let db = client.get_multiplexed_async_std_connection().await?;
 
         /*
         let mut chain = Chain::<String>::of_order(2);
@@ -81,13 +82,14 @@ impl Loudbot {
         */
 
         let malc_chance: u8 = match env::var("TUCKER_CHANCE") {
-            Ok(v) => {
-                match v.parse::<u8>() {
-                    Ok(x) => std::cmp::min(x, 100),
-                    Err(e) => {
-                        warn!("Failed to parse TUCKER_CHANCE as u8; falling back to 2%; {:?}", e);
-                        2
-                    },
+            Ok(v) => match v.parse::<u8>() {
+                Ok(x) => std::cmp::min(x, 100),
+                Err(e) => {
+                    warn!(
+                        "Failed to parse TUCKER_CHANCE as u8; falling back to 2%; {:?}",
+                        e
+                    );
+                    2
                 }
             },
             Err(_) => 2,
@@ -117,7 +119,7 @@ impl Loudbot {
     }
 
     // 1-100
-    fn roll_the_dice(& self) -> u8 {
+    fn roll_the_dice(&self) -> u8 {
         let rng = thread_rng();
         let die_range = Uniform::new_inclusive(1, 100);
         let mut dice = die_range.sample_iter(rng);
@@ -128,18 +130,20 @@ impl Loudbot {
         }
     }
 
-    async fn maybe_toast(& self) {
+    async fn maybe_toast(&self) {
         let t = env::var("WELCOME_CHANNEL");
-        if t.is_err() { return }
+        if t.is_err() {
+            return;
+        }
         let toast = t.unwrap();
         let _ = self.send_message(&toast, "THIS LOUDBOT IS NOW SCUTTLING", None);
     }
 
-    async fn handle_message(& self, incoming: Message) {
+    async fn handle_message(&self, incoming: Message) {
         match incoming {
             Message::BotMessage(ref _y) => {
                 info!("skipping bot message");
-            },
+            }
             Message::Standard(ref x) => {
                 if let Some(_bot_id) = &x.bot_id {
                     info!("skipping bot message");
@@ -153,9 +157,9 @@ impl Loudbot {
         }
     }
 
-    async fn process(& self, prompt: &MessageStandard) {
+    async fn process(&self, prompt: &MessageStandard) {
         if prompt.text.is_none() || prompt.channel.is_none() {
-            return // nothing to be done
+            return; // nothing to be done
         }
         let text = prompt.text.as_ref().unwrap();
 
@@ -185,7 +189,7 @@ impl Loudbot {
             self.remember(prompt.text.as_ref().unwrap()).await;
             if self.roll_the_dice() > 98 {
                 self.lookup(YELLS).await
-                // Some(self.chain.generate_str())
+            // Some(self.chain.generate_str())
             } else {
                 self.lookup(YELLS).await
             }
@@ -197,47 +201,51 @@ impl Loudbot {
         }
     }
 
-    async fn remember(& self, shout: &str) {
+    async fn remember(&self, shout: &str) {
         // self.chain.feed_str(shout);
         let mut r = self.db.clone();
         let _ = r.sadd::<&str, &str, u32>(YELLS, shout).await;
     }
 
-    async fn lookup(& self, key: &str) -> Option<String> {
+    async fn lookup(&self, key: &str) -> Option<String> {
         let mut r = self.db.clone();
         let retort: RString = r.srandmember(key).await;
         match retort {
             Err(e) => {
                 warn!("Failed to get a random set member from redis: {:?}", e);
                 None
-            },
+            }
             Ok(retort) => Some(retort),
         }
     }
 
-    async fn report(& self) -> Option<String> {
+    async fn report(&self) -> Option<String> {
         let mut r = self.db.clone();
 
         let count = match r.get::<&str, String>(COUNT).await {
             Ok(c) => c,
-            Err(_) => "AN UNKNOWN NUMBER OF".to_string()
+            Err(_) => "AN UNKNOWN NUMBER OF".to_string(),
         };
         let cardinality = match r.scard::<&str, u32>(YELLS).await {
             Ok(c) => c.to_string(),
-            Err(_) => "AN UNKNOWN NUMBER OF".to_string()
+            Err(_) => "AN UNKNOWN NUMBER OF".to_string(),
         };
         let malcolms = match r.get::<&str, String>(MALCCOUNT).await {
             Ok(c) => c,
-            Err(_) => "AN UNKNOWN NUMBER OF".to_string()
+            Err(_) => "AN UNKNOWN NUMBER OF".to_string(),
         };
         Some(format!("I HAVE YELLED {} TIMES. I HAVE {} THINGS TO YELL AT YOU. MALCOLM TUCKER HAS BEEN SUMMONED {} TIMES.", count, cardinality, malcolms))
     }
 
-    async fn yell(& self, prompt: &slack::MessageStandard, retort: &str) {
+    async fn yell(&self, prompt: &slack::MessageStandard, retort: &str) {
         let channel = prompt.channel.as_ref().unwrap();
-        info!("yelling: `{}`; prompt: `{}`", retort, prompt.text.as_ref().unwrap());
-        match self.send_message(&channel, &retort,prompt.thread_ts) {
-            Ok(_) => { },
+        info!(
+            "yelling: `{}`; prompt: `{}`",
+            retort,
+            prompt.text.as_ref().unwrap()
+        );
+        match self.send_message(&channel, &retort, prompt.thread_ts) {
+            Ok(_) => {}
             Err(e) => panic!("{:?}", e),
         };
 
@@ -245,7 +253,12 @@ impl Loudbot {
         let _ = r.incr::<&str, u32, u32>(COUNT, 1).await;
     }
 
-    pub fn send_message(& self, channel: &str, text: &str, maybe_ts: Option<slack::Timestamp>) -> Result<bool, Error> {
+    pub fn send_message(
+        &self,
+        channel: &str,
+        text: &str,
+        maybe_ts: Option<slack::Timestamp>,
+    ) -> Result<bool, Error> {
         let message = PostMessageRequest {
             channel,
             text,
@@ -257,20 +270,14 @@ impl Loudbot {
 
         // this error we let bubble up
         let client = slack::default_client()?;
-        let response = slack::chat::post_message(
-            &client,
-            &self.slack_token,
-            &message
-        );
+        let response = slack::chat::post_message(&client, &self.slack_token, &message);
         match response {
             Err(e) => {
                 // this error we just log and continue from
                 error!("error trying to post message: {:?}", e);
                 Ok(false)
-            },
-            Ok(_) => {
-                Ok(true)
             }
+            Ok(_) => Ok(true),
         }
     }
 }
@@ -303,20 +310,22 @@ async fn incoming(mut req: tide::Request<Loudbot>) -> tide::Result<Response> {
     if incoming.token != loudie.verification {
         let mut res = Response::new(400);
         res.set_body("invalid payload");
-        return Ok(res)
+        return Ok(res);
     }
 
     let msgtype = incoming.message_type.clone();
     let response = match msgtype {
         Some(v) => {
             if v == "url_verification".to_string() {
-                let challenger  = incoming.rest["challenge"].as_str().unwrap().to_string();
-                let retort = ChallengeResponse { challenge: challenger };
+                let challenger = incoming.rest["challenge"].as_str().unwrap().to_string();
+                let retort = ChallengeResponse {
+                    challenge: challenger,
+                };
                 let mut res = Response::new(200);
                 res.set_body(Body::from_json(&retort)?);
                 res
             } else if v == "event_callback".to_string() {
-                if let Some(event)= incoming.event {
+                if let Some(event) = incoming.event {
                     loudie.handle_message(event).await;
                 } else {
                     info!("woops {:?}", incoming);
@@ -331,7 +340,7 @@ async fn incoming(mut req: tide::Request<Loudbot>) -> tide::Result<Response> {
                 res.set_body("unimplemented");
                 res
             }
-        },
+        }
         None => {
             dbg!(&incoming);
             let mut res = Response::new(418);
@@ -345,7 +354,7 @@ async fn incoming(mut req: tide::Request<Loudbot>) -> tide::Result<Response> {
 // sure this is overkill
 #[derive(Serialize, Debug)]
 struct ChallengeResponse {
-    challenge: String
+    challenge: String,
 }
 
 fn main() -> Result<(), BoxedError> {
@@ -355,17 +364,26 @@ fn main() -> Result<(), BoxedError> {
 
     let slack_token = env::var("SLACK_TOKEN")
         .with_context(|| "You must provide a valid slack api token in the env var SLACK_TOKEN.")?;
-    let verification = env::var("VERIFICATION_TOKEN")
-        .with_context(|| "You must provide your slack verification token in the env var VERIFICATION_TOKEN.")?;
+    let verification = env::var("VERIFICATION_TOKEN").with_context(|| {
+        "You must provide your slack verification token in the env var VERIFICATION_TOKEN."
+    })?;
 
-    let redis_uri = env::var("REDIS_URL").ok().unwrap_or_else(||  "redis://127.0.0.1:6379".to_string());
+    let redis_uri = env::var("REDIS_URL")
+        .ok()
+        .unwrap_or_else(|| "redis://127.0.0.1:6379".to_string());
     info!("BRAIN @ {}", redis_uri);
-    let host = env::var("HOST").ok().unwrap_or_else(|| "localhost".to_string());
+    let host = env::var("HOST")
+        .ok()
+        .unwrap_or_else(|| "localhost".to_string());
     let port = env::var("PORT").ok().unwrap_or_else(|| "5000".to_string());
-    let prefix = env::var("ROUTE_PREFIX").ok().unwrap_or_else(|| "".to_string());
+    let prefix = env::var("ROUTE_PREFIX")
+        .ok()
+        .unwrap_or_else(|| "".to_string());
 
     smol::run(async {
-        let loudie = Loudbot::new(slack_token, verification, redis_uri).await.unwrap();
+        let loudie = Loudbot::new(slack_token, verification, redis_uri)
+            .await
+            .unwrap();
         loudie.maybe_toast().await;
 
         let mut app = tide::with_state(loudie);
