@@ -316,7 +316,7 @@ async fn incoming(mut req: tide::Request<Loudbot>) -> tide::Result<Response> {
     let msgtype = incoming.message_type.clone();
     let response = match msgtype {
         Some(v) => {
-            if v == "url_verification".to_string() {
+            if v == "url_verification" {
                 let challenger = incoming.rest["challenge"].as_str().unwrap().to_string();
                 let retort = ChallengeResponse {
                     challenge: challenger,
@@ -324,7 +324,7 @@ async fn incoming(mut req: tide::Request<Loudbot>) -> tide::Result<Response> {
                 let mut res = Response::new(200);
                 res.set_body(Body::from_json(&retort)?);
                 res
-            } else if v == "event_callback".to_string() {
+            } else if v == "event_callback" {
                 if let Some(event) = incoming.event {
                     loudie.handle_message(event).await;
                 } else {
