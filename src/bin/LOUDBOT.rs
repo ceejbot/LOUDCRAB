@@ -380,7 +380,7 @@ fn main() -> Result<(), BoxedError> {
         .ok()
         .unwrap_or_else(|| "".to_string());
 
-    smol::run(async {
+    smol::block_on(async {
         let loudie = Loudbot::new(slack_token, verification, redis_uri)
             .await
             .unwrap();

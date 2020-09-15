@@ -16,9 +16,13 @@ regex = "1"
 serde = "*"
 serde_json = "*"
 simple_logger = "1"
-smol = "*"
-tide = "*"
+smol = "1.0.1"
 
 [dependencies.slack_api]
 features = ["sync", "reqwest_blocking"]
 version = "0.23.1"
+
+[dependencies.tide]
+version = "0.13.0"
+default-features = false
+features = [ "h1-server" ]
