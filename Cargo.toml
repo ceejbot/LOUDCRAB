@@ -4,6 +4,7 @@ default-run = "LOUDBOT"
 edition = "2018"
 name = "LOUDCRAB"
 version = "0.3.0"
+
 [dependencies]
 anyhow = "1"
 dotenv = "0.15.0"
