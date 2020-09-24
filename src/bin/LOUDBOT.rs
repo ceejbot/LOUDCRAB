@@ -13,8 +13,18 @@ use std::env;
 use std::convert::AsRef;
 
 type RString = std::result::Result<String, redis::RedisError>;
+
 // This pattern depends on the order of the chunks.
 const IGNORE: &str = r"<@\w+>|[\W\d[[:punct:]]]|s+";
+const SW: &str = r"\b(?i)(LUKE|LEIA|SKYWALKER|ORGANA|TARKIN|LIGHTSABER|ENDOR|MILLENIUM +FALCON|DARTH|VADER|HAN +SOLO|OBIWAN|OBI-WAN|KENOBI|CHEWIE|CHEWBACCA|TATOOINE|STAR +WARS?|DEATH +STAR)\b";
+
+fn is_loud(pattern: &Regex, text: &str) -> bool {
+    let result = pattern.replace_all(text, "");
+    if result.trim().len() < 4 {
+        return false;
+    }
+    result.to_uppercase() == result
+}
 
 // This holds everything we want to allocate once at startup, because
 // what's the point of writing in Rust if we don't eke out RAW PERF?
@@ -108,7 +118,7 @@ impl Loudbot {
             report    : Regex::new("(?i)LOUDBOT +REPORT").unwrap(),
             ship      : Regex::new("(?i)SHIP ?NAME").unwrap(),
             ignore    : Regex::new(IGNORE).unwrap(),
-            sw        : Regex::new("(?i)(LUKE|LEIA|SKYWALKER|ORGANA|TARKIN|LIGHTSABER|ENDOR|MILLENIUM +FALCON|DARTH|VADER|HAN +SOLO|OBIWAN|OBI-WAN|KENOBI|CHEWIE|CHEWBACCA|TATOOINE|STAR +WAR|DEATH +STAR)").unwrap(),
+            sw        : Regex::new(SW).unwrap(),
             swears    : regex::RegexSet::new(&[
                 r"(?i).*FUCK.*",
                 r"(?i)(^|\W)CUNT(\W|$)",
@@ -242,14 +252,6 @@ impl Loudbot {
     }
 }
 
-fn is_loud(pattern: &Regex, text: &str) -> bool {
-    let result = pattern.replace_all(text, "");
-    if result.trim().len() < 4 {
-        return false
-    }
-    result.to_uppercase() == result
-}
-
 pub fn send_message(cli: &RtmClient, channel_id: &str, text: &str, maybe_ts: Option<&String>) -> Result<usize, Error> {
     let id = cli.sender().get_msg_uid();
     // This is heinous but it's what the slack crate itself does to send messages. OMG.
@@ -306,15 +308,29 @@ mod tests {
         let patt = Regex::new(IGNORE).unwrap();
 
         assert!(is_loud(&patt, "THIS IS LOUD"));
-        assert!(!is_loud(&patt, "This is not loud"));
         assert!(is_loud(&patt, "THIS IS LOUD."));
+        assert!(is_loud(&patt, "YOU ARE EXTREMELY SILLY <@U123> OH YEAH"));
+
+        assert!(!is_loud(&patt, "This is not loud"));
         assert!(!is_loud(&patt, "12345"));
         assert!(!is_loud(&patt, "800-555-1212"));
         assert!(!is_loud(&patt, "FU!!!!!"));
         assert!(!is_loud(&patt, "<@U123>"));
         assert!(!is_loud(&patt, "ABC"));
-        assert!(is_loud(&patt, "YOU ARE EXTREMELY SILLY <@U123> OH YEAH"));
         assert!(!is_loud(&patt, "1234-1249384 <@U123> 912302"));
         assert!(!is_loud(&patt, "<@U123> ABC"));
+    }
+
+    #[test]
+    fn movie_easter_egg_works() {
+        let patt = Regex::new(SW).unwrap();
+
+        assert!(patt.is_match("chewbacca"));
+        assert!(patt.is_match("Chewbacca"));
+        assert!(patt.is_match("ChewIE"));
+        assert!(patt.is_match("luke"));
+        assert!(!patt.is_match("fluke"));
+        assert!(!patt.is_match("vendor"));
+        assert!(patt.is_match("third moon of Endor"));
     }
 }
