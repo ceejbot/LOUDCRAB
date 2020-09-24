@@ -108,7 +108,7 @@ impl Loudbot {
             report    : Regex::new("(?i)LOUDBOT +REPORT").unwrap(),
             ship      : Regex::new("(?i)SHIP ?NAME").unwrap(),
             ignore    : Regex::new(IGNORE).unwrap(),
-            sw        : Regex::new("(?i)(LUKE|LEIA|SKYWALKER|ORGANA|TARKIN|LIGHTSABER|MILLENIUM +FALCON|DARTH|VADER|HAN +SOLO|OBIWAN|OBI-WAN|KENOBI|CHEWIE|CHEWBACCA|TATOOINE|STAR +WAR|DEATH +STAR)").unwrap(),
+            sw        : Regex::new(r"\b(?i)(LUKE|LEIA|SKYWALKER|ORGANA|TARKIN|LIGHTSABER|MILLENIUM +FALCON|DARTH|VADER|HAN +SOLO|OBIWAN|OBI-WAN|KENOBI|CHEWIE|CHEWBACCA|TATOOINE|STAR +WARS?|DEATH +STAR)\b").unwrap(),
             swears    : regex::RegexSet::new(&[
                 r"(?i).*FUCK.*",
                 r"(?i)(^|\W)CUNT(\W|$)",
