@@ -15,7 +15,7 @@ use std::convert::AsRef;
 type RString = std::result::Result<String, redis::RedisError>;
 
 // This pattern depends on the order of the chunks.
-const IGNORE: &str = r"<@\w+>|[\W\d[[:punct:]]]|s+";
+const IGNORE: &str = r":\w+:|<@\w+>|[\W\d[[:punct:]]]|s+";
 const SW: &str = r"\b(?i)(LUKE|LEIA|SKYWALKER|ORGANA|TARKIN|LIGHTSABER|ENDOR|MILLENIUM +FALCON|DARTH|VADER|HAN +SOLO|OBIWAN|OBI-WAN|KENOBI|CHEWIE|CHEWBACCA|TATOOINE|STAR +WARS?|DEATH +STAR)\b";
 
 fn is_loud(pattern: &Regex, text: &str) -> bool {
@@ -310,6 +310,7 @@ mod tests {
         assert!(is_loud(&patt, "THIS IS LOUD"));
         assert!(is_loud(&patt, "THIS IS LOUD."));
         assert!(is_loud(&patt, "YOU ARE EXTREMELY SILLY <@U123> OH YEAH"));
+        assert!(is_loud(&patt, "SHOUTING :fish: MOAR"));
 
         assert!(!is_loud(&patt, "This is not loud"));
         assert!(!is_loud(&patt, "12345"));
@@ -319,6 +320,8 @@ mod tests {
         assert!(!is_loud(&patt, "ABC"));
         assert!(!is_loud(&patt, "1234-1249384 <@U123> 912302"));
         assert!(!is_loud(&patt, "<@U123> ABC"));
+        assert!(!is_loud(&patt, ":emoji1: :emoji2:"));
+        assert!(!is_loud(&patt, "not shouting :emoji:"));
     }
 
     #[test]

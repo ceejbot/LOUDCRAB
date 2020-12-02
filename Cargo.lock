@@ -2,11 +2,11 @@
 # It is not intended for manual editing.
 [[package]]
 name = "LOUDCRAB"
-version = "0.2.2"
+version = "0.2.3"
 dependencies = [
  "anyhow",
  "dotenv",
- "log 0.4.8",
+ "log 0.3.9",
  "markov",
  "rand 0.7.3",
  "redis",
