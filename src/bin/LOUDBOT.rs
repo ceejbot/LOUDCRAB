@@ -353,7 +353,7 @@ struct ChallengeResponse {
 fn main() -> Result<(), BoxedError> {
     dotenv().ok();
 
-    simple_logger::init_by_env();
+    simple_logger::SimpleLogger::from_env().init().unwrap();
 
     let slack_token = env::var("SLACK_TOKEN")
         .with_context(|| "You must provide a valid slack api token in the env var SLACK_TOKEN.")?;

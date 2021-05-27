@@ -8,7 +8,7 @@ version = "0.3.0"
 [dependencies]
 anyhow = "1"
 dotenv = "0.15.0"
-log = "0.4.11"
+log = "0.4.14"
 markov = "1.1.0"
 rand = "0.8.3"
 redis = { version = "0.20.1", features = ["async-std-comp"] }
@@ -23,6 +23,6 @@ features = ["sync", "reqwest_blocking"]
 version = "0.23.1"
 
 [dependencies.tide]
-version = "0.13.0"
+version = "0.16.0"
 default-features = false
 features = [ "h1-server" ]
