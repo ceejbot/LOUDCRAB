@@ -124,10 +124,7 @@ impl Loudbot {
         let die_range = Uniform::new_inclusive(1, 100);
         let mut dice = die_range.sample_iter(rng);
 
-        match dice.next() {
-            Some(d) => d,
-            None => 0,
-        }
+        dice.next().unwrap_or(0)
     }
 
     async fn maybe_toast(&self) {
@@ -167,11 +164,7 @@ impl Loudbot {
             self.lookup(STARS).await
         } else if self.cat.is_match(text) {
             // this data is not in shoutcase to start with
-            if let Some(r) = self.lookup(CATS).await {
-                Some(r.to_uppercase())
-            } else {
-                None
-            }
+            self.lookup(CATS).await.map(|r| r.to_uppercase())
         } else if self.malc.is_match(text) {
             Some("https://cldup.com/w_exMqXKlT.gif".to_string())
         } else if self.ship.is_match(text) {
@@ -250,7 +243,7 @@ impl Loudbot {
         };
 
         let mut r = self.db.clone();
-        let _ = r.incr::<&str, u32, u32>(COUNT, 1).await;
+        let _ = r.incr::<&str, u32, u32>(COUNT, 1 as u32).await;
     }
 
     pub fn send_message(
