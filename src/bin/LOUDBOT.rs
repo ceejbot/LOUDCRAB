@@ -22,7 +22,7 @@ type RString = std::result::Result<String, redis::RedisError>;
 
 // This pattern depends on the order of the chunks.
 const IGNORE: &str = r":\w+:|<@\w+>|[\W\d[[:punct:]]]|s+";
-const SW: &str = r"\b(?i)(LUKE|LEIA|SKYWALKER|ORGANA|TARKIN|LIGHTSABER|ENDOR|MILLENIUM +FALCON|DARTH|VADER|HAN +SOLO|OBIWAN|OBI-WAN|KENOBI|CHEWIE|CHEWBACCA|TATOOINE|STAR +WARS?|DEATH +STAR)\b";
+const SW: &str = r"\b(?i)(LUKE +SKYWALKER|LEIA|SKYWALKER|ORGANA|TARKIN|LIGHTSABER|MILLENIUM +FALCON|DARTH +VADER|VADER|HAN +SOLO|OBIWAN|OBI-WAN|ENDOR|KENOBI|CHEWIE|CHEWBACCA|TATOOINE|STAR +WARS?|DEATH +STAR)\b";
 
 fn is_loud(pattern: &Regex, text: &str) -> bool {
     let result = pattern.replace_all(text, "");
@@ -108,7 +108,7 @@ impl Loudbot {
             report    : Regex::new("(?i)LOUDBOT +REPORT").unwrap(),
             ship      : Regex::new("(?i)SHIP ?NAME").unwrap(),
             ignore    : Regex::new(IGNORE).unwrap(),
-            sw        : Regex::new(r"\b(?i)(LUKE|LEIA|SKYWALKER|ORGANA|TARKIN|LIGHTSABER|MILLENIUM +FALCON|DARTH|VADER|HAN +SOLO|OBIWAN|OBI-WAN|KENOBI|CHEWIE|CHEWBACCA|TATOOINE|STAR +WARS?|DEATH +STAR)\b").unwrap(),
+            sw        : Regex::new(SW).unwrap(),
             swears    : regex::RegexSet::new(&[
                 r"(?i).*FUCK.*",
                 r"(?i)(^|\W)CUNT(\W|$)",
@@ -423,7 +423,8 @@ mod tests {
         assert!(patt.is_match("chewbacca"));
         assert!(patt.is_match("Chewbacca"));
         assert!(patt.is_match("ChewIE"));
-        assert!(patt.is_match("luke"));
+        assert!(!patt.is_match("luke"));
+        assert!(patt.is_match("luke skywalker"));
         assert!(!patt.is_match("fluke"));
         assert!(!patt.is_match("vendor"));
         assert!(patt.is_match("third moon of Endor"));
