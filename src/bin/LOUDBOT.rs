@@ -275,6 +275,58 @@ impl Loudbot {
     }
 }
 
+
+// -----------------------
+
+use async_trait::async_trait;
+use std::{borrow::Borrow};
+use surf::http::{Method, Url};
+use std::fmt::Display;
+
+#[derive(Debug)]
+struct AnyhowWrapper(anyhow::Error);
+
+impl Display for AnyhowWrapper {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        self.0.fmt(f)
+    }
+}
+
+impl std::error::Error for AnyhowWrapper {
+}
+
+struct HttpClient {
+}
+
+#[async_trait]
+impl slack_api::requests::SlackWebRequestSender for HttpClient {
+    type Error = AnyhowWrapper;
+
+    async fn send<I, K, V, S>(&self, method_url: S, params: I) -> Result<String, Self::Error>
+    where
+        I: IntoIterator + Send,
+        K: AsRef<str>,
+        V: AsRef<str>,
+        I::Item: Borrow<(K, V)>,
+        S: AsRef<str> + Send,
+    {
+        // params needs to be something serde can serialize before we pass it to query() below
+        let mut query: HashMap<String, String> = HashMap::new();
+        for pair in params.into_iter() {
+            let &(ref key, ref value) = pair.borrow();
+            query.insert(key.as_ref().to_string(), value.as_ref().to_string());
+        }
+
+        let url = Url::parse(method_url.as_ref()).map_err(|e| AnyhowWrapper(e.into()))?;
+        let req = surf::RequestBuilder::new(Method::Get, url)
+            .query(&query).map_err(|e| AnyhowWrapper(e.into_inner()))?
+            ;
+
+        Ok(req.recv_string().await.map_err(|e| AnyhowWrapper(e.into_inner()))?)
+    }
+}
+// -----------
+
 async fn ping(req: tide::Request<Loudbot>) -> tide::Result<String> {
     let loudie = req.state();
     let y = loudie.lookup(YELLS).await;
