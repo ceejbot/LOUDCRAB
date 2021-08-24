@@ -130,10 +130,7 @@ impl Loudbot {
 
     // 1-100
     fn roll_the_dice(&mut self) -> u8 {
-        match self.dice.next() {
-            Some(d) => d,
-            None => 0,
-        }
+        self.dice.next().unwrap_or(0)
     }
 
     fn maybe_toast(&mut self, cli: &RtmClient) {
@@ -191,11 +188,7 @@ impl Loudbot {
             self.lookup(self.swkey.clone())
         } else if self.cat.is_match(text) {
             // this data is not in shoutcase to start with
-            if let Some(r) = self.lookup(self.catkey.clone()) {
-                Some(r.to_uppercase())
-            } else {
-                None
-            }
+            self.lookup(self.catkey.clone()).map(|r| r.to_uppercase())
         } else if self.malc.is_match(text) {
             Some("https://cldup.com/w_exMqXKlT.gif".to_string())
         } else if self.ship.is_match(text) {
@@ -244,7 +237,7 @@ impl Loudbot {
         let channel = prompt.channel.as_ref().unwrap();
         info!("yelling: `{}`; prompt: `{}`", retort, prompt.text.as_ref().unwrap());
 
-        match send_message(cli, &channel, &retort, prompt.thread_ts.as_ref()) {
+        match send_message(cli, channel, retort, prompt.thread_ts.as_ref()) {
             Ok(_) => { },
             Err(e) => panic!("{:?}", e),
         };
