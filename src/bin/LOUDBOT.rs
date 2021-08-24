@@ -154,8 +154,8 @@ impl Loudbot {
             })
             .and_then(|chan| chan.id.as_ref());
 
-        if let Some(id) = toast_ch_id {
-            let _ = send_message(cli, &id, "THIS LOUDBOT IS NOW SCUTTLING", None::<&String>);
+        if toast_ch_id.is_none() {
+            error!("This LOUDBOT is NOT scuttling! Matching `WELCOME_CHANNEL`, {}, id not found.", toast_channel);
         }
     }
 
