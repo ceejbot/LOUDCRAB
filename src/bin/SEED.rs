@@ -4,15 +4,20 @@ use dotenv::dotenv;
 use regex::Regex;
 use std::env;
 use std::fs::File;
-use std::io::{ BufRead, BufReader };
+use std::io::{BufRead, BufReader};
 use std::path::Path;
 
 // Message store + other data
-fn seed_from_file(db: &mut redis::Connection, filename: impl AsRef<Path>  + std::fmt::Debug + Copy, key: &str, skip_loud_check: bool) -> Result<u32, redis::RedisError> {
+fn seed_from_file(
+    db: &mut redis::Connection,
+    filename: impl AsRef<Path> + std::fmt::Debug + Copy,
+    key: &str,
+    skip_loud_check: bool,
+) -> Result<u32, redis::RedisError> {
     let fp = File::open(filename);
     if fp.is_err() {
         println!("Skipping {:?}; could not open file for reading.", filename);
-        return Ok(0)
+        return Ok(0);
     }
 
     let punc = Regex::new(r"[\W\d[[:punct:]]]").unwrap();
@@ -48,13 +53,14 @@ fn main() -> Result<()> {
     };
     let client = redis::Client::open(redis_uri.as_ref())
         .with_context(|| format!("Unable to create redis client @ {}", redis_uri))?;
-    let mut rcon =  client.get_connection()
+    let mut rcon = client
+        .get_connection()
         .with_context(|| format!("Unable to connect to redis @ {}", redis_uri))?;
 
-    let catkey  = format!("{}:CAT", redis_prefix);
+    let catkey = format!("{}:CAT", redis_prefix);
     let malckey = format!("{}:MALC", redis_prefix);
     let shipkey = format!("{}:SHIPS", redis_prefix);
-    let swkey   = format!("{}:SW", redis_prefix);
+    let swkey = format!("{}:SW", redis_prefix);
     let yellkey = format!("{}:YELLS", redis_prefix);
 
     seed_from_file(&mut rcon, "CATS", &catkey, true)

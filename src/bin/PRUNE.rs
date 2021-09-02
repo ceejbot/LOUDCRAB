@@ -4,12 +4,16 @@ use dotenv::dotenv;
 use redis::Commands;
 use std::env;
 use std::fs::File;
-use std::io::{ BufRead, BufReader };
+use std::io::{BufRead, BufReader};
 use std::path::Path;
 
 type RCount = std::result::Result<u32, redis::RedisError>;
 
-fn prune_from_file(db: &mut redis::Connection, filename: impl AsRef<Path>  + std::fmt::Debug + Copy, key: &str) -> Result<u32, redis::RedisError> {
+fn prune_from_file(
+    db: &mut redis::Connection,
+    filename: impl AsRef<Path> + std::fmt::Debug + Copy,
+    key: &str,
+) -> Result<u32, redis::RedisError> {
     let mut count: u32 = 0;
     let file = File::open(filename).expect("no such file");
     let reader = BufReader::new(file);
@@ -21,7 +25,9 @@ fn prune_from_file(db: &mut redis::Connection, filename: impl AsRef<Path>  + std
         let res: RCount = db.srem(key, text);
         match res {
             Err(e) => println!("{:?}", e),
-            Ok(i) => { count += i; },
+            Ok(i) => {
+                count += i;
+            }
         }
     }
     println!("Removed {} items from {:#?}", count, filename);
@@ -41,14 +47,15 @@ fn main() -> Result<()> {
     };
     let client = redis::Client::open(redis_uri.as_ref())
         .with_context(|| format!("Unable to create redis client @ {}", redis_uri))?;
-    let mut rcon =  client.get_connection()
+    let mut rcon = client
+        .get_connection()
         .with_context(|| format!("Unable to connect to redis @ {}", redis_uri))?;
 
     let yellkey = format!("{}:YELLS", redis_prefix);
 
     for f in std::env::args().skip(1) {
         prune_from_file(&mut rcon, &f, &yellkey)
-        .with_context(|| "Trying to write to redis failed utterly.")?;
+            .with_context(|| "Trying to write to redis failed utterly.")?;
     }
 
     Ok(())

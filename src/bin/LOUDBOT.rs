@@ -1,17 +1,17 @@
 #![allow(non_snake_case)]
 use anyhow::{Context, Result};
 use dotenv::dotenv;
-use log::{debug, info, warn, error};
+use log::{debug, error, info, warn};
 use markov::Chain;
+use rand::distributions::{DistIter, Uniform};
 use rand::prelude::*;
 use rand::thread_rng;
-use rand::distributions::{DistIter, Uniform};
 use redis::Commands;
-use regex::{ Regex, RegexSet };
+use regex::{Regex, RegexSet};
 use slack::api::Timestamp;
-use slack::{ api, Error, Event, Message, RtmClient };
-use std::env;
+use slack::{api, Error, Event, Message, RtmClient};
 use std::convert::AsRef;
+use std::env;
 
 type RString = std::result::Result<String, redis::RedisError>;
 
@@ -30,26 +30,26 @@ fn is_loud(pattern: &Regex, text: &str) -> bool {
 // This holds everything we want to allocate once at startup, because
 // what's the point of writing in Rust if we don't eke out RAW PERF?
 struct Loudbot {
-    db         : redis::Connection,
-    dice       : DistIter<Uniform<u8>, rand::rngs::ThreadRng, u8>,
-    chain      : Chain::<String>,
+    db: redis::Connection,
+    dice: DistIter<Uniform<u8>, rand::rngs::ThreadRng, u8>,
+    chain: Chain<String>,
     malc_chance: u8,
-    catkey     : String,
-    countkey   : String,
-    malckey    : String,
-    malccount  : String,
-    shipkey    : String,
-    swkey      : String,
-    yellkey    : String,
-    cat        : Regex,
-    fuckity    : Regex,
-    intro      : Regex,
-    malc       : Regex,
-    report     : Regex,
-    ship       : Regex,
-    ignore     : Regex,
-    sw         : Regex,
-    swears     : RegexSet,
+    catkey: String,
+    countkey: String,
+    malckey: String,
+    malccount: String,
+    shipkey: String,
+    swkey: String,
+    yellkey: String,
+    cat: Regex,
+    fuckity: Regex,
+    intro: Regex,
+    malc: Regex,
+    report: Regex,
+    ship: Regex,
+    ignore: Regex,
+    sw: Regex,
+    swears: RegexSet,
 }
 
 impl slack::EventHandler for Loudbot {
@@ -57,7 +57,7 @@ impl slack::EventHandler for Loudbot {
         match event {
             Event::Hello => self.maybe_toast(cli),
             Event::Message(ref m) => self.handle_message(cli, m),
-            Event::MessageSent(_) => {},
+            Event::MessageSent(_) => {}
             _ => debug!("on_event(event: {:?})", event),
         };
     }
@@ -74,27 +74,29 @@ impl slack::EventHandler for Loudbot {
 
 impl Loudbot {
     pub fn new(mut db: redis::Connection) -> Loudbot {
-
         let rng = thread_rng();
         let die_range = Uniform::new_inclusive(1, 100);
         let dice = die_range.sample_iter(rng);
 
         let mut chain = Chain::<String>::of_order(2);
         match db.sscan::<String, String>("LB:YELLS".to_string()) {
-            Err(_) => {},
+            Err(_) => {}
             Ok(iter) => {
-                iter.for_each(|token: String| { chain.feed_str(&token); });
+                iter.for_each(|token: String| {
+                    chain.feed_str(&token);
+                });
             }
         };
 
         let malc_chance: u8 = match env::var("TUCKER_CHANCE") {
-            Ok(v) => {
-                match v.parse::<u8>() {
-                    Ok(x) => std::cmp::min(x, 100),
-                    Err(e) => {
-                        warn!("Failed to parse TUCKER_CHANCE as u8; falling back to 2%; {:?}", e);
-                        2
-                    },
+            Ok(v) => match v.parse::<u8>() {
+                Ok(x) => std::cmp::min(x, 100),
+                Err(e) => {
+                    warn!(
+                        "Failed to parse TUCKER_CHANCE as u8; falling back to 2%; {:?}",
+                        e
+                    );
+                    2
                 }
             },
             Err(_) => 2,
@@ -105,27 +107,28 @@ impl Loudbot {
             dice,
             chain,
             malc_chance,
-            catkey    : "LB:CAT".to_string(),
-            countkey  : "LB:COUNT".to_string(),
-            malckey   : "LB:MALC".to_string(),
-            malccount : "LB:MALCCOUNT".to_string(),
-            shipkey   : "LB:SHIPS".to_string(),
-            swkey     : "LB:SW".to_string(),
-            yellkey   : "LB:YELLS".to_string(),
-            cat       : Regex::new("(?i)CAT +FACT").unwrap(),
-            fuckity   : Regex::new("(?i)FUCKITY.?BYE").unwrap(),
-            intro     : Regex::new("(?i)LOUDBOT +INTRODUCE +YOURSELF").unwrap(),
-            malc      : Regex::new("(?i)MALCOLM +TUCKER").unwrap(),
-            report    : Regex::new("(?i)LOUDBOT +REPORT").unwrap(),
-            ship      : Regex::new("(?i)SHIP ?NAME").unwrap(),
-            ignore    : Regex::new(IGNORE).unwrap(),
-            sw        : Regex::new(SW).unwrap(),
-            swears    : regex::RegexSet::new(&[
+            catkey: "LB:CAT".to_string(),
+            countkey: "LB:COUNT".to_string(),
+            malckey: "LB:MALC".to_string(),
+            malccount: "LB:MALCCOUNT".to_string(),
+            shipkey: "LB:SHIPS".to_string(),
+            swkey: "LB:SW".to_string(),
+            yellkey: "LB:YELLS".to_string(),
+            cat: Regex::new("(?i)CAT +FACT").unwrap(),
+            fuckity: Regex::new("(?i)FUCKITY.?BYE").unwrap(),
+            intro: Regex::new("(?i)LOUDBOT +INTRODUCE +YOURSELF").unwrap(),
+            malc: Regex::new("(?i)MALCOLM +TUCKER").unwrap(),
+            report: Regex::new("(?i)LOUDBOT +REPORT").unwrap(),
+            ship: Regex::new("(?i)SHIP ?NAME").unwrap(),
+            ignore: Regex::new(IGNORE).unwrap(),
+            sw: Regex::new(SW).unwrap(),
+            swears: regex::RegexSet::new(&[
                 r"(?i).*FUCK.*",
                 r"(?i)(^|\W)CUNT(\W|$)",
                 r"(?i)(^|\W)TWAT(\W|$)",
                 r"(?i)(^|\W)OMNISHAMBLES(^|\W)",
-            ]).unwrap(),
+            ])
+            .unwrap(),
         }
     }
 
@@ -136,24 +139,28 @@ impl Loudbot {
 
     fn maybe_toast(&mut self, cli: &RtmClient) {
         let t = env::var("WELCOME_CHANNEL");
-        if t.is_err() { return }
+        if t.is_err() {
+            return;
+        }
         let toast_channel = t.unwrap();
 
-        let toast_ch_id = cli.start_response()
+        let toast_ch_id = cli
+            .start_response()
             .channels
             .as_ref()
             .and_then(|channels| {
-                channels
-                    .iter()
-                    .find(|chan| match chan.name {
-                        None => false,
-                        Some(ref name) => name == &toast_channel,
-                    })
+                channels.iter().find(|chan| match chan.name {
+                    None => false,
+                    Some(ref name) => name == &toast_channel,
+                })
             })
             .and_then(|chan| chan.id.as_ref());
 
         if toast_ch_id.is_none() {
-            error!("This LOUDBOT is NOT scuttling! Matching `WELCOME_CHANNEL`, {}, id not found.", toast_channel);
+            error!(
+                "This LOUDBOT is NOT scuttling! Matching `WELCOME_CHANNEL`, {}, id not found.",
+                toast_channel
+            );
         }
     }
 
@@ -174,14 +181,14 @@ impl Loudbot {
             Err(e) => {
                 warn!("Failed to get a random set member from redis: {:?}", e);
                 None
-            },
+            }
             Ok(retort) => Some(retort),
         }
     }
 
     fn process(&mut self, cli: &RtmClient, prompt: &api::MessageStandard) {
         if prompt.text.is_none() || prompt.channel.is_none() {
-            return // nothing to be done
+            return; // nothing to be done
         }
         let text = prompt.text.as_ref().unwrap();
 
@@ -221,45 +228,60 @@ impl Loudbot {
     fn report(&mut self) -> Option<String> {
         let count = match self.db.get::<&str, String>(&self.countkey) {
             Ok(c) => c,
-            Err(_) => "AN UNKNOWN NUMBER OF".to_string()
+            Err(_) => "AN UNKNOWN NUMBER OF".to_string(),
         };
         let cardinality = match self.db.scard::<&str, u32>(&self.yellkey) {
             Ok(c) => c.to_string(),
-            Err(_) => "AN UNKNOWN NUMBER OF".to_string()
+            Err(_) => "AN UNKNOWN NUMBER OF".to_string(),
         };
         let malcolms = match self.db.get::<&str, String>(&self.malccount) {
             Ok(c) => c,
-            Err(_) => "AN UNKNOWN NUMBER OF".to_string()
+            Err(_) => "AN UNKNOWN NUMBER OF".to_string(),
         };
-        Some(format!("I HAVE YELLED {} TIMES. I HAVE {} THINGS TO YELL AT YOU. MALCOLM TUCKER HAS BEEN SUMMONED {} TIMES.", count, cardinality, malcolms))
+        let version = env!("CARGO_PKG_VERSION");
+        Some(format!("I AM RUNNING LOUDOS VERSION {}. I HAVE YELLED {} TIMES. I HAVE {} THINGS TO YELL AT YOU. MALCOLM TUCKER HAS BEEN SUMMONED {} TIMES.", version, count, cardinality, malcolms))
     }
 
     fn yell(&mut self, cli: &RtmClient, prompt: &api::MessageStandard, retort: &str) {
         let channel = prompt.channel.as_ref().unwrap();
-        info!("yelling: `{}`; prompt: `{}`", retort, prompt.text.as_ref().unwrap());
+        info!(
+            "yelling: `{}`; prompt: `{}`",
+            retort,
+            prompt.text.as_ref().unwrap()
+        );
 
         match send_message(cli, channel, retort, prompt.thread_ts) {
-            Ok(_) => { },
+            Ok(_) => {}
             Err(e) => panic!("{:?}", e),
         };
         let _ = self.db.incr::<&str, u32, u32>(&self.countkey, 1);
     }
 }
 
-pub fn send_message(cli: &RtmClient, channel_id: &str, text: &str, maybe_ts: Option<Timestamp>) -> Result<usize, Error> {
+pub fn send_message(
+    cli: &RtmClient,
+    channel_id: &str,
+    text: &str,
+    maybe_ts: Option<Timestamp>,
+) -> Result<usize, Error> {
     let id = cli.sender().get_msg_uid();
     // This is heinous but it's what the slack crate itself does to send messages. OMG.
     let serialized = match maybe_ts {
         None => format!(
             r#"{{"id": {}, "type": "message", "channel": "{}", "text": "{}", "unfurl_links": true }}"#,
-            id, channel_id, text ),
+            id, channel_id, text
+        ),
         Some(ts) => format!(
             r#"{{"id": {}, "type": "message", "channel": "{}", "text": "{}", "unfurl_links": true, "thread_ts": "{}" }}"#,
-            id, channel_id, text, ts.to_string() ),
+            id,
+            channel_id,
+            text,
+            ts.to_string()
+        ),
     };
     match cli.sender().send(&serialized) {
         Err(e) => Err(e),
-        Ok(_) => Ok(id)
+        Ok(_) => Ok(id),
     }
 }
 
@@ -277,7 +299,8 @@ fn main() -> Result<()> {
     };
     let client = redis::Client::open(redis_uri.as_ref())
         .with_context(|| format!("Unable to create redis client @ {}", redis_uri))?;
-    let rcon =  client.get_connection()
+    let rcon = client
+        .get_connection()
         .with_context(|| format!("Unable to connect to redis @ {}", redis_uri))?;
     info!("Memory @ {}", redis_uri);
 
