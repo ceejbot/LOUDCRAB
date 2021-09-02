@@ -39,6 +39,8 @@ But sometimes we wish to forget. `PRUNE` is an administrative convenience for ma
 
 There's a Dockerfile that builds a reasonably tiny alpine run environment for a LOUDBOT. The tradeoff is that you'll need to run the [Rust embedded cross-compilation tools](https://github.com/rust-embedded/cross) yourself to get executables. This is mostly painless: type `make alpine`. `make all` builds darwin, linux gnu, and linux musl (for alpine) targets for you, tars them up, and stashes them in `./releases`.
 
+The musl builds are borked at the moment because I haven't yet found a good docker image to configure `cross` with.
+
 The example Docker file takes the required config as build arguments; be careful with that slack api token.
 
 ## License

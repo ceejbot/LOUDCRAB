@@ -5,6 +5,7 @@ EXECS = LOUDBOT PRUNE SEED
 TEXTS = MALCOLM CATS SEEDS SHIPS STAR_FIGHTING
 BOLD=\033[0;1;32m
 NORMAL=\033[m
+PWD := $(shell pwd)
 
 all: release
 
@@ -15,21 +16,29 @@ all: release
 %.tar.gz: %.tar
 	@gzip $<
 
-%-build:
+x86_64-apple-darwin-build:
 	@echo "Building $(BOLD)$*$(NORMAL)..."
-	@cross build --release --target x86_64-$*
+	@cross build --release --target x86_64-apple-darwin
+
+unknown-linux-gnu-build:
+	@echo "Building $(BOLD)$*$(NORMAL)..."
+	@cross build --release --target x86_64-unknown-linux-gnu
+
+unknown-linux-musl-build:
+	@echo "Building $(BOLD)$*$(NORMAL)..."
+	docker run -v $(PWD):/volume --rm -it clux/muslrust cargo build --release --target x86_64-unknown-linux-musl
 
 $(OS_TARGETS): %-arch: %.tar.gz
 	@echo "    done.\n"
+
+alpine: unknown-linux-musl-build
+
+gnu: unknown-linux-gnu-build
 
 release: $(OS_TARGETS)
 	@mkdir -p releases
 	@mv *.tar.gz releases/
 	@echo "Tarballs in $(BOLD)./releases$(NORMAL)."
-
-alpine: unknown-linux-musl-arch
-
-gnu: unknown-linux-gnu-arch
 
 clean:
 	rm -f *.tar *.gz releases/*

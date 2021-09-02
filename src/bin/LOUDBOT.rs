@@ -8,6 +8,7 @@ use rand::thread_rng;
 use rand::distributions::{DistIter, Uniform};
 use redis::Commands;
 use regex::{ Regex, RegexSet };
+use slack::api::Timestamp;
 use slack::{ api, Error, Event, Message, RtmClient };
 use std::env;
 use std::convert::AsRef;
@@ -237,7 +238,7 @@ impl Loudbot {
         let channel = prompt.channel.as_ref().unwrap();
         info!("yelling: `{}`; prompt: `{}`", retort, prompt.text.as_ref().unwrap());
 
-        match send_message(cli, channel, retort, prompt.thread_ts.as_ref()) {
+        match send_message(cli, channel, retort, prompt.thread_ts) {
             Ok(_) => { },
             Err(e) => panic!("{:?}", e),
         };
@@ -245,7 +246,7 @@ impl Loudbot {
     }
 }
 
-pub fn send_message(cli: &RtmClient, channel_id: &str, text: &str, maybe_ts: Option<&String>) -> Result<usize, Error> {
+pub fn send_message(cli: &RtmClient, channel_id: &str, text: &str, maybe_ts: Option<Timestamp>) -> Result<usize, Error> {
     let id = cli.sender().get_msg_uid();
     // This is heinous but it's what the slack crate itself does to send messages. OMG.
     let serialized = match maybe_ts {
@@ -254,7 +255,7 @@ pub fn send_message(cli: &RtmClient, channel_id: &str, text: &str, maybe_ts: Opt
             id, channel_id, text ),
         Some(ts) => format!(
             r#"{{"id": {}, "type": "message", "channel": "{}", "text": "{}", "unfurl_links": true, "thread_ts": "{}" }}"#,
-            id, channel_id, text, ts ),
+            id, channel_id, text, ts.to_string() ),
     };
     match cli.sender().send(&serialized) {
         Err(e) => Err(e),
@@ -265,7 +266,7 @@ pub fn send_message(cli: &RtmClient, channel_id: &str, text: &str, maybe_ts: Opt
 fn main() -> Result<()> {
     dotenv().ok();
 
-    simple_logger::init_by_env();
+    simple_logger::init_with_env()?;
 
     let slack_token = env::var("SLACK_TOKEN")
         .with_context(|| "You must provide a valid slack api token in the env var SLACK_TOKEN.")?;
