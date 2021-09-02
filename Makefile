@@ -16,16 +16,16 @@ all: release
 %.tar.gz: %.tar
 	@gzip $<
 
-x86_64-apple-darwin-build:
-	@echo "Building $(BOLD)$*$(NORMAL)..."
+apple-darwin-build:
+	@echo "Building $(BOLD)darwin$(NORMAL)..."
 	@cross build --release --target x86_64-apple-darwin
 
 unknown-linux-gnu-build:
-	@echo "Building $(BOLD)$*$(NORMAL)..."
+	@echo "Building $(BOLD)gnu$(NORMAL)..."
 	@cross build --release --target x86_64-unknown-linux-gnu
 
 unknown-linux-musl-build:
-	@echo "Building $(BOLD)$*$(NORMAL)..."
+	@echo "Building $(BOLD)musl$(NORMAL)..."
 	docker run -v $(PWD):/volume --rm -it clux/muslrust cargo build --release --target x86_64-unknown-linux-musl
 
 $(OS_TARGETS): %-arch: %.tar.gz
