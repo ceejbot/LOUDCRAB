@@ -17,7 +17,7 @@ type RString = std::result::Result<String, redis::RedisError>;
 
 // This pattern depends on the order of the chunks.
 const IGNORE: &str = r":\w+:|<@\w+>|[\W\d[[:punct:]]]|s+";
-const SW: &str = r"\b(?i)(LUKE|LEIA|SKYWALKER|ORGANA|TARKIN|LIGHTSABER|ENDOR|MILLENIUM +FALCON|DARTH|VADER|HAN +SOLO|OBIWAN|OBI-WAN|KENOBI|CHEWIE|CHEWBACCA|TATOOINE|STAR +WARS?|DEATH +STAR)\b";
+const SW: &str = r"\b(?i)(LEIA|SKYWALKER|ORGANA|TARKIN|LIGHTSABER|ENDOR|MILLENIUM +FALCON|DARTH|VADER|HAN +SOLO|OBIWAN|OBI-WAN|KENOBI|JABBA|CHEWIE|CHEWBACCA|TATOOINE|STAR +WARS?|DEATH +STAR)\b";
 
 fn is_loud(pattern: &Regex, text: &str) -> bool {
     let result = pattern.replace_all(text, "");
@@ -31,6 +31,7 @@ fn is_loud(pattern: &Regex, text: &str) -> bool {
 // what's the point of writing in Rust if we don't eke out RAW PERF?
 struct Loudbot {
     db: redis::Connection,
+    toasted: bool,
     dice: DistIter<Uniform<u8>, rand::rngs::ThreadRng, u8>,
     chain: Chain<String>,
     malc_chance: u8,
@@ -104,6 +105,7 @@ impl Loudbot {
 
         Loudbot {
             db,
+            toasted: false,
             dice,
             chain,
             malc_chance,
@@ -119,7 +121,7 @@ impl Loudbot {
             intro: Regex::new("(?i)LOUDBOT +INTRODUCE +YOURSELF").unwrap(),
             malc: Regex::new("(?i)MALCOLM +TUCKER").unwrap(),
             report: Regex::new("(?i)LOUDBOT +REPORT").unwrap(),
-            ship: Regex::new("(?i)SHIP ?NAME").unwrap(),
+            ship: Regex::new("SHIP ?NAME").unwrap(),
             ignore: Regex::new(IGNORE).unwrap(),
             sw: Regex::new(SW).unwrap(),
             swears: regex::RegexSet::new(&[
@@ -138,13 +140,17 @@ impl Loudbot {
     }
 
     fn maybe_toast(&mut self, cli: &RtmClient) {
+        if self.toasted {
+            return;
+        }
+
         let t = env::var("WELCOME_CHANNEL");
         if t.is_err() {
             return;
         }
         let toast_channel = t.unwrap();
 
-        let toast_ch_id = cli
+        if let Some(toast_ch_id) = cli
             .start_response()
             .channels
             .as_ref()
@@ -154,9 +160,11 @@ impl Loudbot {
                     Some(ref name) => name == &toast_channel,
                 })
             })
-            .and_then(|chan| chan.id.as_ref());
-
-        if toast_ch_id.is_none() {
+            .and_then(|chan| chan.id.as_ref())
+        {
+            let _ = send_message(cli, toast_ch_id, "THIS LOUDBOT IS NOW SCUTTLING", None);
+            self.toasted = true;
+        } else {
             error!(
                 "This LOUDBOT is NOT scuttling! Matching `WELCOME_CHANNEL`, {}, id not found.",
                 toast_channel
@@ -308,7 +316,7 @@ fn main() -> Result<()> {
     match RtmClient::login_and_run(&slack_token, &mut loudie) {
         Ok(_) => {}
         Err(err) => {
-            error!("Caught error from rtm client; intentionally crashing and restarting");
+            error!("Caught error from rtm client; intentionally crashing");
             panic!("Error: {}", err);
         }
     }
