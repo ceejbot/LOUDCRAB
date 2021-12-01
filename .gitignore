@@ -1,7 +1,9 @@
 /target
-releases
+built-rtm
+built
 .env
 *.tar
 *.tar.gz
 build-ecs.sh
 fixtures
+.vscode

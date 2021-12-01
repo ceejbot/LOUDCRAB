@@ -237,13 +237,13 @@ impl Loudbot {
             retort,
             prompt.text.as_ref().unwrap()
         );
-        match self.send_message(&channel, &retort, prompt.thread_ts) {
+        match self.send_message(channel, retort, prompt.thread_ts) {
             Ok(_) => {}
             Err(e) => panic!("{:?}", e),
         };
 
         let mut r = self.db.clone();
-        let _ = r.incr::<&str, u32, u32>(COUNT, 1 as u32).await;
+        let _ = r.incr::<&str, u32, u32>(COUNT, 1_u32).await;
     }
 
     pub fn send_message(
