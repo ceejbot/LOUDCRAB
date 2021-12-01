@@ -1,0 +1,7 @@
+FROM rust:latest
+LABEL maintainer="ceejceej@gmail.com"
+
+RUN cargo search cross
+RUN rustup target install x86_64-unknown-linux-gnu && rustup target install x86_64-unknown-linux-musl
+
+CMD ["bin/bash"]
