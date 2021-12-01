@@ -15,14 +15,20 @@ BOLD=\033[0;1;32m
 NORMAL=\033[m
 PWD := $(shell pwd)
 
-all: dirs $(TARS)
+all: container dirs $(TARS)
 	@echo "Tarballs in $(BOLD)./built$(NORMAL)."
 
-arm: dirs $(ARM_TARGETS)
+container:
+	@docker build -t loudcross - < Dockerfile.builds
+
+check-box:
+    @docker run -v $(PWD):/src -w /src --rm -it loudcross /bin/bash
+
+arm: container dirs $(ARM_TARGETS)
 	@echo "Tarballs for ARM architectures & Intel Darwin in $(BOLD)./built/$(NORMAL)."
 	@echo "Build for x86 Linux on an Intel Mac!"
 
-x86: dirs $(X86_TARGETS)
+x86: container dirs $(X86_TARGETS)
 	@echo "Tarballs for Linux X86 hosts in $(BOLD)./built$(NORMAL)."
 	@echo "Build for ARM on an M1 Mac!"
 
