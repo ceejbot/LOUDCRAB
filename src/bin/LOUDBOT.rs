@@ -20,10 +20,12 @@ use tide::{Body, Response};
 type BoxedError = Box<dyn std::error::Error + Send + Sync + 'static>;
 type RString = std::result::Result<String, redis::RedisError>;
 
-// This pattern depends on the order of the chunks.
+/// Characters to strip out before considering the loudness of the input. This pattern depends on the order of the chunks.
 const IGNORE: &str = r":\w+:|<@\w+>|[\W\d[[:punct:]]]|s+";
-const SW: &str = r"\b(?i)(LUKE +SKYWALKER|LEIA|SKYWALKER|ORGANA|TARKIN|LIGHTSABER|MILLENIUM +FALCON|DARTH +VADER|VADER|HAN +SOLO|OBIWAN|OBI-WAN|ENDOR|KENOBI|CHEWIE|CHEWBACCA|TATOOINE|STAR +WARS?|DEATH +STAR)\b";
+/// The famous movie quote trigger pattern.
+const SW: &str = r"\b(?i)(LUKE +SKYWALKER|LEIA|SKYWALKER|ORGANA|TARKIN|LIGHTSABER|MILLENIUM +FALCON|DARTH +VADER|VADER|HAN +SOLO|OBIWAN|OBI-WAN|KENOBI|JABBA|CHEWIE|CHEWBACCA|TATOOINE|STAR +WARS?|DEATH +STAR|ALDERAAN|YAVIN|ENDOR)\b";
 
+/// Is the input LOUD or not?
 fn is_loud(pattern: &Regex, text: &str) -> bool {
     let result = pattern.replace_all(text, "");
     if result.trim().len() < 4 {
@@ -32,6 +34,7 @@ fn is_loud(pattern: &Regex, text: &str) -> bool {
     result.to_uppercase() == result
 }
 
+// These are redit key strings.
 const YELLS    : &str = "LB:YELLS";
 const STARS    : &str = "LB:SW";
 const SHIPS    : &str = "LB:SHIPS";
@@ -44,11 +47,17 @@ const MALCCOUNT: &str = "LB:MALCCOUNT";
 // what's the point of writing in Rust if we don't eke out RAW PERF?
 #[derive(Clone)]
 struct Loudbot {
-    slack_token : String,  // our API token, which we send to slack
-    verification: String, // the verification token Slack will pass to us
+    /// our API token, which we send to slack
+    slack_token : String,
+    /// the verification token Slack should pass to us
+    verification: String,
+    /// The percent chance that swearing will trigger a Malcolm Tucker gif.
     malc_chance : u8,
+    /// The redis connection.
     db          : MultiplexedConnection,
+    /// Are we asking for a cat fact?
     cat         : Regex,
+    /// "Fuckity bye" gets a special.
     fuckity     : Regex,
     intro       : Regex,
     malc        : Regex,
@@ -67,8 +76,7 @@ impl Loudbot {
         redis_uri: String,
     ) -> Result<Loudbot, BoxedError> {
         let client = redis::Client::open(redis_uri.as_ref())
-            .with_context(|| format!("Unable to create redis client @ {}", redis_uri))
-            .unwrap();
+            .with_context(|| format!("Unable to create redis client @ {}", redis_uri))?;
         let db = client.get_multiplexed_async_std_connection().await?;
 
         /*
@@ -101,24 +109,24 @@ impl Loudbot {
             // chain,
             malc_chance,
             db,
-            cat       : Regex::new("(?i)CAT +FACT").unwrap(),
-            fuckity   : Regex::new("(?i)FUCKITY.?BYE").unwrap(),
-            intro     : Regex::new("(?i)LOUDBOT +INTRODUCE +YOURSELF").unwrap(),
-            malc      : Regex::new("(?i)MALCOLM +TUCKER").unwrap(),
-            report    : Regex::new("(?i)LOUDBOT +REPORT").unwrap(),
-            ship      : Regex::new("(?i)SHIP ?NAME").unwrap(),
-            ignore    : Regex::new(IGNORE).unwrap(),
-            sw        : Regex::new(SW).unwrap(),
-            swears    : regex::RegexSet::new(&[
+            cat    : Regex::new("(?i)CAT +FACT")?,
+            fuckity: Regex::new("(?i)FUCKITY.?BYE")?,
+            intro  : Regex::new("(?i)LOUDBOT +INTRODUCE +YOURSELF")?,
+            malc   : Regex::new("(?i)MALCOLM +TUCKER +MALCOLM +TUCKER")?,
+            report : Regex::new("(?i)LOUDBOT +REPORT")?,
+            ship   : Regex::new("(?i)SHIP ?NAME")?,
+            ignore : Regex::new(IGNORE)?,
+            sw     : Regex::new(SW)?,
+            swears : regex::RegexSet::new(&[
                 r"(?i).*FUCK.*",
                 r"(?i)(^|\W)CUNT(\W|$)",
                 r"(?i)(^|\W)TWAT(\W|$)",
                 r"(?i)(^|\W)OMNISHAMBLES(^|\W)",
-            ]).unwrap(),
+            ])?,
         })
     }
 
-    // 1-100
+    /// Roll a mythical d100.
     fn roll_the_dice(&self) -> u8 {
         let rng = thread_rng();
         let die_range = Uniform::new_inclusive(1, 100);
@@ -227,7 +235,8 @@ impl Loudbot {
             Ok(c) => c,
             Err(_) => "AN UNKNOWN NUMBER OF".to_string(),
         };
-        Some(format!("I HAVE YELLED {} TIMES. I HAVE {} THINGS TO YELL AT YOU. MALCOLM TUCKER HAS BEEN SUMMONED {} TIMES.", count, cardinality, malcolms))
+        let version = env!("CARGO_PKG_VERSION");
+        Some(format!("I AM RUNNING LOUDOS VERSION {}. I HAVE YELLED {} TIMES. I HAVE {} THINGS TO YELL AT YOU. MALCOLM TUCKER HAS BEEN SUMMONED {} TIMES.", version, count, cardinality, malcolms))
     }
 
     async fn yell(&self, prompt: &slack::MessageStandard, retort: &str) {
