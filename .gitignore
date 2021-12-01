@@ -1,5 +1,5 @@
 /target
-releases
+built
 .env
 *.tar
 *.tar.gz

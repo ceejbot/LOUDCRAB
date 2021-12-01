@@ -1,50 +1,78 @@
 #!/bin/bash
-OSES = apple-darwin unknown-linux-gnu unknown-linux-musl
-OS_TARGETS := $(foreach a,$(OSES),$(a)-arch)
+OSES = aarch64-apple-darwin aarch64-unknown-linux-gnu x86_64-unknown-linux-musl x86_64-unknown-linux-gnu
+TARS := $(foreach a,$(OSES),built/$(a).tgz)
+
+ARM = x86_64-apple-darwin aarch64-apple-darwin aarch64-unknown-linux-gnu
+ARM_TARGETS := $(foreach a,$(ARM),built/loudbot-$(a).tgz)
+
+X86 = x86_64-unknown-linux-musl x86_64-unknown-linux-gnu
+X86_TARGETS := $(foreach a,$(X86),built/loudbot-$(a).tgz)
+
 EXECS = LOUDBOT PRUNE SEED
 TEXTS = MALCOLM CATS SEEDS SHIPS STAR_FIGHTING
+
 BOLD=\033[0;1;32m
 NORMAL=\033[m
 PWD := $(shell pwd)
 
-all: release
+all: dirs $(TARS)
+	@echo "Tarballs in $(BOLD)./built$(NORMAL)."
 
-%.tar: %-build
-	@tar cf $@ -C target/x86_64-$*/release $(EXECS)
-	@tar f $@ -r $(TEXTS)
+arm: dirs $(ARM_TARGETS)
+	@echo "Tarballs for ARM architectures & Intel Darwin in $(BOLD)./built/$(NORMAL)."
+	@echo "Build for x86 Linux on an Intel Mac!"
 
-%.tar.gz: %.tar
-	@gzip $<
+x86: dirs $(X86_TARGETS)
+	@echo "Tarballs for Linux X86 hosts in $(BOLD)./built$(NORMAL)."
+	@echo "Build for ARM on an M1 Mac!"
 
-apple-darwin-build:
-	@echo "Building $(BOLD)darwin$(NORMAL)..."
-	@cross build --release --target x86_64-apple-darwin
+dirs:
+	@mkdir -p ./built
 
-unknown-linux-gnu-build:
-	@echo "Building $(BOLD)gnu$(NORMAL)..."
-	@cross build --release --target x86_64-unknown-linux-gnu
-
-unknown-linux-musl-build:
-	@echo "Building $(BOLD)musl$(NORMAL)..."
-	docker run -v $(PWD):/volume --rm -it clux/muslrust cargo build --release --target x86_64-unknown-linux-musl
-
-$(OS_TARGETS): %-arch: %.tar.gz
+built/loudbot-%.tgz: %
+	@tar cf $*.tar -C target/$*/release $(EXECS)
+	@tar f $*.tar -r $(TEXTS)
+	@gzip $*.tar
+	@mv $*.tar.gz built/loudbot-$*.tgz
 	@echo "    done.\n"
 
-alpine: unknown-linux-musl-build
+x86_64-apple-darwin:
+	@echo "Building $(BOLD)x86 darwin$(NORMAL)..."
+	@cargo build --release --target x86_64-apple-darwin
 
-gnu: unknown-linux-gnu-build
+aarch64-apple-darwin:
+	@echo "Building $(BOLD)m1 darwin$(NORMAL)..."
+	@cargo build --release --target aarch64-apple-darwin
 
-release: $(OS_TARGETS)
-	@mkdir -p releases
-	@mv *.tar.gz releases/
-	@echo "Tarballs in $(BOLD)./releases$(NORMAL)."
+aarch64-unknown-linux-gnu:
+	@echo "Building $(BOLD)graviton$(NORMAL)..."
+	@docker run -v $(PWD):/src -w /src --rm -it loudcross cargo build --release --target aarch64-unknown-linux-gnu
+
+x86_64-unknown-linux-gnu:
+	@echo "Building $(BOLD)gnu$(NORMAL)..."
+	@# does not work on m1: fails to run this in a container
+	@#cross build --release --target x86_64-unknown-linux-gnu
+	@docker run -v $(PWD):/src -w /src --rm -it loudcross cargo build --release --target x86_64-unknown-linux-gnu
+
+x86_64-unknown-linux-musl:
+	@echo "Building $(BOLD)musl$(NORMAL)..."
+	@docker run -v $(PWD):/src -w /src --rm -it clux/muslrust cargo build --release --target x86_64-unknown-linux-musl
+
+m1: built/loudbot-aarch64-apple-darwin.tgz
+
+spaceheater: built/loudbot-x86_64-apple-darwin.tgz
+
+alpine: built/loudbot-x86_64-unknown-linux-musl.tgz
+
+gnu: built/loudbot-x86_64-unknown-linux-gnu.tgz
+
+graviton: built/loudbot-aarch64-unknown-linux-gnu.tgz
 
 clean:
-	rm -f *.tar *.gz releases/*
-	rmdir releases
+	rm -f *.tar *.gz built/*
+	rmdir built
 
 spotless: clean
 	cargo clean
 
-.PHONY: release clean spotless $(OS_TARGETS) $(OSES) alpine gnu
+.PHONY: clean spotless $(OS_TARGETS)

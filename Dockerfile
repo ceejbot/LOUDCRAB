@@ -16,6 +16,6 @@ ENV RUST_LOG=$log_level
 
 RUN apk add --no-cache bash libc6-compat
 WORKDIR /loudbot
-ADD ./releases/unknown-linux-musl.tar.gz .
+ADD ./built/loudbot-unknown-linux-musl.tgz .
 
 CMD ["/loudbot/LOUDBOT"]
