@@ -43,9 +43,7 @@ jobs:
       - run: cargo build --release
       - name: tar it up
         run:
-          tar cf LOUDBOT_x64_linux.tar -C target/release LOUDBOT PRUNE SEED
-          tar f LOUDBOT_x64_linux.tar -r MALCOLM CATS SEEDS SHIPS STAR_FIGHTING
-          gzip LOUDBOT_x64_linux.tar
+          tar cf LOUDBOT_x64_linux.tar -C target/release LOUDBOT PRUNE SEED && tar f LOUDBOT_x64_linux.tar -r MALCOLM CATS SEEDS SHIPS STAR_FIGHTING && gzip LOUDBOT_x64_linux.tar
       - name: upload x64 linux gnu release
         id: release
         uses: actions/upload-release-asset@v1
@@ -78,9 +76,7 @@ jobs:
       - run: cargo build --release
       - name: the tar thing
         run:
-          tar cf LOUDBOT_x64_darwin.tar -C target/release LOUDBOT PRUNE SEED
-          tar f LOUDBOT_x64_darwin.tar -r MALCOLM CATS SEEDS SHIPS STAR_FIGHTING
-          gzip LOUDBOT_x64_darwin.tar
+          tar cf LOUDBOT_x64_darwin.tar -C target/release LOUDBOT PRUNE SEED && tar f LOUDBOT_x64_darwin.tar -r MALCOLM CATS SEEDS SHIPS STAR_FIGHTING && gzip LOUDBOT_x64_darwin.tar
       - name: upload darwin intel release
         id: intel-release
         uses: actions/upload-release-asset@v1
@@ -96,9 +92,7 @@ jobs:
       - run: cargo build --target aarch64-apple-darwin --release
       - name: the tar thing
         run:
-          tar cf LOUDBOT_aarch64_darwin.tar -C target/release LOUDBOT PRUNE SEED
-          tar f LOUDBOT_aarch64_darwin.tar -r MALCOLM CATS SEEDS SHIPS STAR_FIGHTING
-          gzip LOUDBOT_aarch64_darwin.tar
+          tar cf LOUDBOT_aarch64_darwin.tar -C target/release LOUDBOT PRUNE SEED && tar f LOUDBOT_aarch64_darwin.tar -r MALCOLM CATS SEEDS SHIPS STAR_FIGHTING && gzip LOUDBOT_aarch64_darwin.tar
       - name: upload darwin m1 release
         id: m1-release
         uses: actions/upload-release-asset@v1
