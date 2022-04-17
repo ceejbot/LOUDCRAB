@@ -23,14 +23,19 @@ jobs:
           prerelease: false
 
   linux:
-    name: linux gnulibc build
+    name: linux musl build
     runs-on: ubuntu-latest
     needs: [release]
     steps:
       - uses: actions/checkout@v2
+
       - uses: actions-rs/toolchain@v1
         with:
+          profile: minimal
           toolchain: stable
+          override: true
+          target: x86_64-unknown-linux-musl
+
       - uses: actions/cache@v2
         with:
           path: |
@@ -40,11 +45,17 @@ jobs:
           key: ${{ runner.os }}-cargo-${{ hashFiles('Cargo.lock') }}
           restore-keys: |
             ${{ runner.os }}-cargo-
-      - run: cargo build --release
+
+      - name: Build
+        uses: actions-rs/cargo@v1
+        with:
+          command: build
+          args: --release --target x86_64-unknown-linux-musl
+
       - name: tar it up
         run:
-          tar cf LOUDBOT_x64_linux.tar -C target/release LOUDBOT PRUNE SEED && tar f LOUDBOT_x64_linux.tar -r MALCOLM CATS SEEDS SHIPS STAR_FIGHTING && gzip LOUDBOT_x64_linux.tar
-      - name: upload x64 linux gnu release
+          tar cf LOUDBOT_x64_linux.tar -C target/x86_64-unknown-linux-musl/release LOUDBOT PRUNE SEED && tar f LOUDBOT_x64_linux.tar -r MALCOLM CATS SEEDS SHIPS STAR_FIGHTING && gzip LOUDBOT_x64_linux.tar
+      - name: upload x64 linux musl release
         id: release
         uses: actions/upload-release-asset@v1
         env:
