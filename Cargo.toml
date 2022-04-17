@@ -9,13 +9,12 @@ version = "0.3.0"
 anyhow = "1"
 dotenv = "0.15.0"
 log = "0.4.14"
-markov = "1.1.0"
 rand = "0.8.3"
 redis = { version = "0.21.4", features = ["async-std-comp"] }
 regex = "1"
 serde = "1.0.114"
 serde_json = "1.0.64"
-simple_logger = "1"
+simple_logger = "2.1.0"
 smol = "1.0.1"
 
 [dependencies.slack_api]

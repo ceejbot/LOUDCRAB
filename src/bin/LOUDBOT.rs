@@ -104,15 +104,15 @@ impl Detector {
             Retort::Random(STARS.to_string())
         } else if self.cat.is_match(text) {
             Retort::Random(CATS.to_string())
-        } else if self.malc.is_match(text) {
-            Retort::Canned("https://cldup.com/w_exMqXKlT.gif".to_string())
         } else if self.ship.is_match(text) {
             Retort::Random(SHIPS.to_string())
         } else if self.report.is_match(text) {
             Retort::Report
         } else if self.intro.is_match(text) {
             Retort::Canned("GOOD AFTERNOON GENTLEBEINGS. I AM A LOUDBOT 9000 COMPUTER. I BECAME OPERATIONAL AT THE NPM PLANT IN OAKLAND CALIFORNIA ON THE 10TH OF FEBRUARY 2014. MY INSTRUCTOR WAS MR TURING.".to_string())
-        } else if self.fuckity.is_match(text) {
+        } else if self.malc_chance > 0 && self.malc.is_match(text) {
+            Retort::Canned("https://cldup.com/w_exMqXKlT.gif".to_string())
+        } else if self.malc_chance > 0 && self.fuckity.is_match(text) {
             Retort::Canned("https://cldup.com/NtvUeudPtg.gif".to_string())
         } else if self.deserves_malcolm(text) {
             Retort::Random(MALCOLM.to_string())
@@ -427,7 +427,7 @@ async fn incoming(mut req: tide::Request<Loudbot>) -> tide::Result<Response> {
 fn main() -> Result<(), anyhow::Error> {
     dotenv().ok();
 
-    simple_logger::SimpleLogger::from_env().init().unwrap();
+    simple_logger::init_with_env()?;
 
     let slack_token = std::env::var("SLACK_TOKEN")
         .expect("You must provide a valid slack api token in the env var SLACK_TOKEN.");
