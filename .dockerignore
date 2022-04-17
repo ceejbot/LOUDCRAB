@@ -1,7 +1,0 @@
-.env
-build-ecs.sh
-build.sh
-darwin_release_x64.tar.gz
-linux_release_x64.tar.gz
-src/
-target/
