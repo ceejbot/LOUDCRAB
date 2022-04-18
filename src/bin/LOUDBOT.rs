@@ -154,8 +154,6 @@ const CATS: &str = "LB:CAT";
 const COUNT: &str = "LB:COUNT";
 /// Redis key for count of times yelled
 const MALCOLM: &str = "LB:MALC";
-/// Redis key for set of Malcolm Tucker quotes
-const MALCCOUNT: &str = "LB:MALCCOUNT";
 
 /// The LOUDBOT struct (sadly not shoutcased) is our Tide app state.
 ///
@@ -247,7 +245,11 @@ impl Loudbot {
         let retort = match self.detector.classify(text) {
             Retort::None => None,
             Retort::Canned(r) => Some(r),
-            Retort::Random(set) => self.select(&set).await,
+            Retort::Random(set) => {
+                let counter = format!("{set}_COUNT");
+                self.increment(&counter).await;
+                self.select(&set).await
+            }
             Retort::Report => self.report().await,
             Retort::Yell => {
                 self.remember(prompt.text.as_ref().unwrap()).await;
@@ -299,7 +301,8 @@ impl Loudbot {
             Ok(c) => c.to_string(),
             Err(_) => "AN UNKNOWN NUMBER OF".to_string(),
         };
-        let malcolms = match r.get::<&str, String>(MALCCOUNT).await {
+        let key = format!("{MALCOLM}_COUNT");
+        let malcolms = match r.get::<&str, String>(&key).await {
             Ok(c) => c,
             Err(_) => "AN UNKNOWN NUMBER OF".to_string(),
         };
@@ -426,7 +429,6 @@ async fn incoming(mut req: tide::Request<Loudbot>) -> tide::Result<Response> {
 
 fn main() -> Result<(), anyhow::Error> {
     dotenv().ok();
-
     simple_logger::init_with_env()?;
 
     let slack_token = std::env::var("SLACK_TOKEN")
