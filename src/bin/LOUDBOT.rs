@@ -1,6 +1,12 @@
 //! SHOUT, SHOUT, LET IT ALL OUT
 #![allow(non_snake_case)]
 use anyhow::{Context, Error, Result};
+use axum::{
+    extract::Extension,
+    http::StatusCode,
+    routing::{get, post},
+    Json, Router,
+};
 use dotenv::dotenv;
 use rand::distributions::Uniform;
 use rand::prelude::*;
@@ -10,11 +16,12 @@ use regex::{Regex, RegexSet};
 use serde::Deserialize;
 use slack::chat::PostMessageRequest;
 use slack::{Message, MessageStandard};
-use slack_api::sync as slack;
-use tide::{Body, Response};
+use slack_api as slack;
 
 use std::collections::HashMap;
 use std::convert::AsRef;
+use std::net::SocketAddr;
+use std::sync::Arc;
 
 type RString = std::result::Result<String, redis::RedisError>;
 
@@ -208,6 +215,7 @@ impl Loudbot {
     async fn maybe_toast(&self) -> anyhow::Result<bool> {
         if let Ok(toast) = std::env::var("WELCOME_CHANNEL") {
             self.send_message(&toast, "THIS LOUDBOT IS NOW SCUTTLING", None)
+                .await
         } else {
             Ok(false)
         }
@@ -246,6 +254,7 @@ impl Loudbot {
             Retort::None => None,
             Retort::Canned(r) => Some(r),
             Retort::Random(set) => {
+                // Every named set of responses has a corresponding counter.
                 let counter = format!("{set}_COUNT");
                 self.increment(&counter).await;
                 self.select(&set).await
@@ -317,13 +326,13 @@ impl Loudbot {
             "yelling: `{retort}`; prompt: `{}`' channel: `{channel}`",
             prompt.text.as_ref().unwrap()
         );
-        let sent = self.send_message(channel, retort, prompt.thread_ts)?;
+        let sent = self.send_message(channel, retort, prompt.thread_ts).await?;
         self.increment(COUNT).await;
         Ok(sent)
     }
 
     /// Internal implementation of sending a message to Slack.
-    pub fn send_message(
+    pub async fn send_message(
         &self,
         channel: &str,
         text: &str,
@@ -339,7 +348,7 @@ impl Loudbot {
         };
 
         let client = slack::default_client()?;
-        let response = slack::chat::post_message(&client, &self.slack_token, &message);
+        let response = slack::chat::post_message(&client, &self.slack_token, &message).await;
         match response {
             Err(e) => {
                 log::error!("error trying to post message: {:?}", e);
@@ -351,12 +360,11 @@ impl Loudbot {
 }
 
 /// Respond to ping. Useful for monitoring.
-async fn ping(req: tide::Request<Loudbot>) -> tide::Result<String> {
-    let loudie = req.state();
+async fn ping(Extension(loudie): Extension<Arc<Loudbot>>) -> String {
     if let Some(yell) = loudie.select(YELLS).await {
-        Ok(yell)
+        yell
     } else {
-        Ok("failed to find yell".to_string())
+        "failed to find yell".to_string()
     }
 }
 
@@ -376,15 +384,13 @@ struct IncomingEvent {
 }
 
 /// Handle an incoming post from Slack.
-async fn incoming(mut req: tide::Request<Loudbot>) -> tide::Result<Response> {
-    let incoming: IncomingEvent = req.body_json().await?;
-    let loudie = req.state();
-
+async fn incoming(
+    Json(incoming): Json<IncomingEvent>,
+    Extension(loudie): Extension<Arc<Loudbot>>,
+) -> (StatusCode, String) {
     // if the token doesn't match, yell and bail
     if incoming.token != loudie.verification {
-        let mut res = Response::new(400);
-        res.set_body("invalid payload");
-        return Ok(res);
+        return (StatusCode::BAD_REQUEST, "invalid payload".to_string());
     }
 
     // This clone is to avoid a partial move of incoming so we can debug print later. I hate it.
@@ -397,9 +403,7 @@ async fn incoming(mut req: tide::Request<Loudbot>) -> tide::Result<Response> {
             let retort = serde_json::json!({
                 "challenge": challenger,
             });
-            let mut res = Response::new(200);
-            res.set_body(Body::from_json(&retort)?);
-            res
+            (StatusCode::OK, retort.to_string())
         } else if v == "event_callback" {
             if let Some(event) = incoming.event {
                 match loudie.handle_message(event).await {
@@ -413,23 +417,23 @@ async fn incoming(mut req: tide::Request<Loudbot>) -> tide::Result<Response> {
                 );
             }
             // respond with 200 OK no matter what (we should do this immediately, but we can't)
-            tide::Response::new(200)
+            (StatusCode::OK, "OK".to_string())
         } else {
             log::info!("unhandled type: {}", v);
-            tide::Response::new(200)
+            (StatusCode::OK, "OK".to_string())
         }
     } else {
         dbg!(&incoming);
-        let mut res = Response::new(418);
-        res.set_body("I'm a teapot");
-        res
+        (StatusCode::IM_A_TEAPOT, "I'm a teapot".to_string())
     };
-    Ok(res)
+
+    res
 }
 
-fn main() -> Result<(), anyhow::Error> {
+#[tokio::main]
+async fn main() {
     dotenv().ok();
-    simple_logger::init_with_env()?;
+    simple_logger::init_with_env().ok();
 
     let slack_token = std::env::var("SLACK_TOKEN")
         .expect("You must provide a valid slack api token in the env var SLACK_TOKEN.");
@@ -440,26 +444,28 @@ fn main() -> Result<(), anyhow::Error> {
     let redis_uri =
         std::env::var("REDIS_URL").unwrap_or_else(|_| "redis://127.0.0.1:6379".to_string());
     log::info!("BRAIN @ {}", redis_uri);
-    let host = std::env::var("HOST").unwrap_or_else(|_| "localhost".to_string());
+    let host = std::env::var("HOST").unwrap_or_else(|_| "127.0.0.1".to_string());
     let port = std::env::var("PORT").unwrap_or_else(|_| "5000".to_string());
     let prefix = std::env::var("ROUTE_PREFIX").unwrap_or_else(|_| "".to_string());
 
-    smol::block_on(async {
-        let loudie = Loudbot::new(slack_token, verification, redis_uri)
-            .await
-            .unwrap(); // intentional
+    let loudie = Loudbot::new(slack_token, verification, redis_uri)
+        .await
+        .unwrap(); // intentional
+    let _ = loudie.maybe_toast().await; // ignoring errors
 
-        let mut app = tide::with_state(loudie);
-        app.at(&format!("{}/monitor/ping", prefix)).get(ping);
-        app.at(&format!("{}/incoming", prefix)).post(incoming);
+    let app = Router::new()
+        .route(&format!("{}/monitor/ping", prefix), get(ping))
+        .route(&format!("{}/incoming", prefix), post(incoming))
+        .layer(Extension(Arc::new(loudie)));
 
-        let addr = format!("{}:{}", host, port);
-        log::info!("LOUDBOT TUNED FOR SHOUTS COMING IN ON {}", &addr);
-        let _ = app.state().maybe_toast().await; // ignoring errors
-        app.listen(addr.clone()).await.unwrap(); // unwrap() intentional
-    });
+    let addr = format!("{}:{}", host, port);
+    log::info!("LOUDBOT TUNED FOR SHOUTS COMING IN ON {}", &addr);
 
-    Ok(())
+    let addr: SocketAddr = addr.parse().unwrap();
+    axum::Server::bind(&addr)
+        .serve(app.into_make_service())
+        .await
+        .unwrap();
 }
 
 #[cfg(test)]
