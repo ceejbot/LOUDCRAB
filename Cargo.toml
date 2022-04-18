@@ -16,13 +16,9 @@ serde = "1.0.114"
 serde_json = "1.0.64"
 simple_logger = "2.1.0"
 smol = "1.0.1"
+tide = { version = "0.16", default-features = false, features = [ "h1-server" ]}
 
 [dependencies.slack_api]
 default-features = false
 features = ["sync", "reqwest_blocking", "with_rustls"]
-version = "0.23.1"
-
-[dependencies.tide]
-version = "0.16.0"
-default-features = false
-features = [ "h1-server" ]
+git = "https://github.com/ceejbot/slack-rs-api"
