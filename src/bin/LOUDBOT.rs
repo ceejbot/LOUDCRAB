@@ -285,7 +285,7 @@ impl Loudbot {
                 log::warn!("Failed to get a random set member from redis: {:?}", e);
                 None
             }
-            Ok(retort) => Some(retort),
+            Ok(retort) => Some(retort.to_uppercase()),
         }
     }
 
