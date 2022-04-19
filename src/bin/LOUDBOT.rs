@@ -163,7 +163,7 @@ const COUNT: &str = "LB:COUNT";
 /// Redis key for count of times yelled
 const MALCOLM: &str = "LB:MALC";
 
-/// The LOUDBOT struct (sadly not shoutcased) is our Tide app state.
+/// The LOUDBOT struct (sadly not shoutcased) is our app state.
 ///
 /// This structure holds the slack response information as well as the redis
 /// connections: anything we want to live through the whole process.
@@ -184,24 +184,12 @@ impl Loudbot {
         slack_token: String,
         verification: String,
         redis_uri: String,
+        malc_chance: u8,
     ) -> Result<Loudbot, anyhow::Error> {
         let client = redis::Client::open(redis_uri.as_ref())
             .with_context(|| format!("Unable to create redis client @ {}", redis_uri))?;
         let db = client.get_multiplexed_async_std_connection().await?;
 
-        let malc_chance: u8 = match std::env::var("TUCKER_CHANCE") {
-            Ok(v) => match v.parse::<u8>() {
-                Ok(x) => std::cmp::min(x, 100),
-                Err(e) => {
-                    log::warn!(
-                        "Failed to parse TUCKER_CHANCE as u8; falling back to 2%; {:?}",
-                        e
-                    );
-                    2
-                }
-            },
-            Err(_) => 2,
-        };
         let detector = Detector::new(malc_chance);
 
         Ok(Loudbot {
@@ -448,8 +436,21 @@ async fn main() {
     let host = std::env::var("HOST").unwrap_or_else(|_| "127.0.0.1".to_string());
     let port = std::env::var("PORT").unwrap_or_else(|_| "5000".to_string());
     let prefix = std::env::var("ROUTE_PREFIX").unwrap_or_else(|_| "".to_string());
+    let malc_chance: u8 = match std::env::var("TUCKER_CHANCE") {
+        Ok(v) => match v.parse::<u8>() {
+            Ok(x) => std::cmp::min(x, 100),
+            Err(e) => {
+                log::warn!(
+                    "Failed to parse TUCKER_CHANCE as u8; falling back to 2%; {:?}",
+                    e
+                );
+                2
+            }
+        },
+        Err(_) => 2,
+    };
 
-    let loudie = Loudbot::new(slack_token, verification, redis_uri)
+    let loudie = Loudbot::new(slack_token, verification, redis_uri, malc_chance)
         .await
         .unwrap(); // intentional
     let _ = loudie.maybe_toast().await; // ignoring errors
@@ -541,6 +542,14 @@ mod tests {
         assert!(
             !detector.deserves_malcolm("FUCK YOU"),
             "basic swearing is ignored"
+        );
+        assert!(
+            matches!(detector.classify("fuckity bye"), Retort::None),
+            "Malcolm is disabled at 0"
+        );
+        assert!(
+            matches!(detector.classify("Malcolm Tucker Malcolm Tucker"), Retort::None),
+            "Malcolm is disabled at 0"
         );
     }
 }
