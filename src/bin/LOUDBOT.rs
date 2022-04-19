@@ -150,6 +150,7 @@ impl Detector {
 }
 
 // These are redit key strings.
+/// The Redis key for the yell set.
 const YELLS: &str = "LB:YELLS";
 /// Redis key for the set of possible yells
 const STARS: &str = "LB:SW";

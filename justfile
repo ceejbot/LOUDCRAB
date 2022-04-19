@@ -10,6 +10,10 @@ test:
     @cargo fmt --all
     @cargo test
 
+# generate docs and open them in a browser
+docs:
+    @cargo doc --no-deps --open
+
 # build a release and package it up
 release:
     @cargo build --release
