@@ -3,7 +3,7 @@ authors = ["C J Silverio <ceejceej@gmail.com>"]
 default-run = "LOUDBOT"
 edition = "2021"
 name = "LOUDCRAB"
-version = "0.3.1"
+version = "0.4.0"
 
 [dependencies]
 anyhow = "1"
