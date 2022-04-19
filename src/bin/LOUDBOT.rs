@@ -14,12 +14,11 @@ use std::collections::HashMap;
 use std::net::SocketAddr;
 use std::sync::Arc;
 
-use LOUDCRAB::loudbot::constants::*;
-use LOUDCRAB::loudbot::Loudbot;
+use LOUDCRAB::brain::Loudbot;
 
 /// Respond to ping. Useful for monitoring.
 async fn ping(Extension(loudie): Extension<Arc<Loudbot>>) -> String {
-    if let Some(yell) = loudie.select(YELLS).await {
+    if let Some(yell) = loudie.random_yell().await {
         yell
     } else {
         "failed to find yell".to_string()
