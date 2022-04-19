@@ -46,14 +46,15 @@ But sometimes we wish to forget. `PRUNE` is an administrative convenience for ma
 
 ## BUILDING
 
-There's a justfile that will build a tarred-up release for your architecture if it's not covered by the prebuilts.
+There's a [justfile](https://github.com/casey/just) that will build a tarred-up release for your architecture if it's not covered by the prebuilts.
 
 ## TODO
 
+- Switch to validating request signatures from Slack instead of using the verification token.
 - Loudie lost the ability to add emoji reactions a couple of Slack API deprecations ago. It would be great to restore it.
-- Better backup/restore.
+- Better backup/restore for shouts.
+- Maybe a better administration tool for removing unwelcome shouts.
 - Clean up the github workflow.
-- Remove use of `smol` and switch to some future-proof tokio thing.
 - Migrate to whatever the heck this week's Slack API is with [socket mode](https://api.slack.com/apis/connections).
 
 ## License
