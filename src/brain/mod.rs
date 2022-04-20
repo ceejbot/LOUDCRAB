@@ -1,4 +1,4 @@
-pub mod loudbot;
 pub mod classifier;
+pub mod loudbot;
 
 pub use loudbot::*;

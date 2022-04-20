@@ -14,7 +14,7 @@ use std::collections::HashMap;
 use std::net::SocketAddr;
 use std::sync::Arc;
 
-use LOUDCRAB::brain::Loudbot;
+use LOUDCRAB::{LoudbotSlack, Loudbot};
 
 /// Respond to ping. Useful for monitoring.
 async fn ping(Extension(loudie): Extension<Arc<Loudbot>>) -> String {
@@ -43,7 +43,7 @@ struct IncomingEvent {
 /// Handle an incoming post from Slack.
 async fn incoming(
     Json(incoming): Json<IncomingEvent>,
-    Extension(loudie): Extension<Arc<Loudbot>>,
+    Extension(loudie): Extension<Arc<LoudbotSlack>>,
 ) -> (StatusCode, String) {
     // if the token doesn't match, yell and bail
     if incoming.token != loudie.verification {
@@ -118,15 +118,16 @@ async fn main() {
         Err(_) => 2,
     };
 
-    let loudie = Loudbot::new(slack_token, verification, redis_uri, malc_chance)
+    let loudie = Loudbot::new(redis_uri, malc_chance)
         .await
         .unwrap(); // intentional
-    let _ = loudie.maybe_toast().await; // ignoring errors
+    let face = LoudbotSlack::new(slack_token, verification, loudie);
+    let _ = face.maybe_toast().await; // ignoring errors
 
     let app = Router::new()
         .route(&format!("{}/monitor/ping", prefix), get(ping))
         .route(&format!("{}/incoming", prefix), post(incoming))
-        .layer(Extension(Arc::new(loudie)));
+        .layer(Extension(Arc::new(face)));
 
     let addr = format!("{}:{}", host, port);
     log::info!("LOUDBOT TUNED FOR SHOUTS COMING IN ON {}", &addr);
