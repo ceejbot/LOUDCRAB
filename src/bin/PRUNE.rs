@@ -1,4 +1,7 @@
 #![allow(non_snake_case)]
+//! Takes a list of input files containing newline-delimited text.
+//! For each line in each text file, removes the item from the yell
+//! set in redis.
 use anyhow::{Context, Result};
 use dotenv::dotenv;
 use redis::Commands;

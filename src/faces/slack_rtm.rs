@@ -1,6 +1,6 @@
-use slack::{Error, Event, RtmClient};
-use slack_api;
+use slack::{Event, RtmClient};
 use slack_api::Message;
+use tokio::runtime::Runtime;
 
 use crate::Loudbot;
 
@@ -9,15 +9,22 @@ pub struct LoudbotRTM {
     slack_token: String,
     /// our loudbot brain
     brain: Loudbot,
+    rt: Runtime,
 }
 
 impl slack::EventHandler for LoudbotRTM {
-    fn on_event(&mut self, cli: &RtmClient, event: Event) {
+    fn on_event(&mut self, _cli: &RtmClient, event: Event) {
         match event {
-            Event::Hello => { self.maybe_toast(); },
+            Event::Hello => {
+                self.rt.block_on(async {
+                    let _ = self.maybe_toast().await;
+                });
+            },
             Event::Message(ref prompt) => {
-                // whoops hello async
-                self.handle_message(prompt);
+                // Create the runtime
+                self.rt.block_on(async {
+                    let _ = self.handle_message(prompt).await;
+                });
             },
             Event::MessageSent(_) => {},
             _ => log::debug!("on_event(event: {:?})", event),
@@ -36,7 +43,9 @@ impl slack::EventHandler for LoudbotRTM {
 
 impl LoudbotRTM {
     pub fn new(slack_token: String, brain: Loudbot) -> Self {
-        LoudbotRTM { slack_token, brain }
+        let rt  = Runtime::new().unwrap();
+
+        LoudbotRTM { slack_token, brain, rt }
     }
 
     /// If we have a welcome channel, send a toast to it.

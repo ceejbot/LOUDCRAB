@@ -1,21 +1,29 @@
 //! SHOUT, SHOUT, LET IT ALL OUT
 #![allow(non_snake_case)]
 
-use anyhow::{Context, Result};
 use axum::{
     extract::Extension,
-    http::StatusCode,
-    routing::{get, post},
-    Json, Router,
+    routing::get,
+    Router,
 };
 use dotenv::dotenv;
-use slack::api::Timestamp;
-use slack::{api, Error, Event, Message, RtmClient};
+use slack::RtmClient;
+use std::net::SocketAddr;
+use std::sync::Arc;
 
 use LOUDCRAB::{LoudbotRTM, Loudbot};
 
+/// Respond to ping. Useful for monitoring.
+async fn ping(Extension(loudie): Extension<Arc<Loudbot>>) -> String {
+    if let Some(yell) = loudie.random_yell().await {
+        yell
+    } else {
+        "failed to find yell".to_string()
+    }
+}
+
 #[tokio::main]
-async fn main() -> anyhow::Result<()> {
+async fn main() {
     dotenv().ok();
     simple_logger::init_with_env().ok();
 
@@ -47,7 +55,7 @@ async fn main() -> anyhow::Result<()> {
         .unwrap(); // intentional
 
     let mut face = LoudbotRTM::new(slack_token.clone(), brain);
-    match RtmClient::login_and_run(&slack_token, &mut face) {
+    match RtmClient::login_and_run(&slack_token, &mut face).await {
         Ok(_) => {}
         Err(err) => {
             log::error!("Caught error from rtm client; intentionally crashing");
@@ -55,5 +63,16 @@ async fn main() -> anyhow::Result<()> {
         }
     }
 
-    Ok(())
+    let app = Router::new()
+        .route(&format!("{}/monitor/ping", prefix), get(ping))
+        .layer(Extension(Arc::new(face)));
+
+    let addr = format!("{}:{}", host, port);
+    log::info!("LOUDBOT TUNED FOR SHOUTS COMING IN ON {}", &addr);
+
+    let addr: SocketAddr = addr.parse().unwrap();
+    axum::Server::bind(&addr)
+        .serve(app.into_make_service())
+        .await
+        .unwrap();
 }
