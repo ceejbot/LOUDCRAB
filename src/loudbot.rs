@@ -1,22 +1,139 @@
-use rand::distributions::Uniform;
-use rand::prelude::*;
-use regex::{Regex, RegexSet};
+use anyhow::{Context, Result};
+use redis::aio::MultiplexedConnection;
+use redis::AsyncCommands;
+
+use std::convert::AsRef;
+
+type RString = std::result::Result<String, redis::RedisError>;
 
 // These are redit key strings. This needs to be cleaned up.
 // really these are names of easter eggs
 
 /// The Redis key for the yell set.
-pub const YELLS: &str = "LB:YELLS";
+const YELLS: &str = "LB:YELLS";
 /// Redis key for the set of possible yells
-pub const STARS: &str = "LB:SW";
+const STARS: &str = "LB:SW";
 /// Redis key for set of famous movie quotes
-pub const SHIPS: &str = "LB:SHIPS";
+const SHIPS: &str = "LB:SHIPS";
 /// Redis key for set of Culture ship names
-pub const CATS: &str = "LB:CAT";
+const CATS: &str = "LB:CAT";
 /// Redis key for set of cat facts
-pub const COUNT: &str = "LB:COUNT";
+const COUNT: &str = "LB:COUNT";
 /// Redis key for count of times yelled
-pub const MALCOLM: &str = "LB:MALC";
+const MALCOLM: &str = "LB:MALC";
+
+/// The LOUDBOT struct (sadly not shoutcased) is our app state.
+///
+/// This structure holds the slack response information as well as the redis
+/// connections: anything we want to live through the whole process.
+#[derive(Clone)]
+pub struct Loudbot {
+    /// our redis connection
+    db: MultiplexedConnection,
+    /// the message classifier
+    detector: Classifier,
+}
+
+impl Loudbot {
+    pub async fn new(
+        redis_uri: String,
+        malc_chance: u8,
+    ) -> Result<Loudbot, anyhow::Error> {
+        let client = redis::Client::open(redis_uri.as_ref())
+            .with_context(|| format!("Unable to create redis client @ {}", redis_uri))?;
+        let db = client.get_multiplexed_async_std_connection().await?;
+
+        let detector = Classifier::new(malc_chance);
+
+        Ok(Loudbot {
+            db,
+            detector,
+        })
+    }
+
+    pub async fn random_yell(&self) -> Option<String> {
+        self.select(YELLS).await
+    }
+
+    /// This is special because all existing loudbots count yells specially. sadly.
+    pub async fn increment_yells(&self) {
+        self.increment(COUNT).await;
+    }
+
+    /// Examine a text string and decide if we want to retort.
+    pub async fn process(&self, text: &str) -> Option<String> {
+        let retort = match self.detector.classify(text) {
+            Retort::None => None,
+            Retort::Canned(r) => Some(r),
+            Retort::Random(set) => {
+                // Every named set of responses has a corresponding counter.
+                let counter = format!("{set}_COUNT");
+                self.increment(&counter).await;
+                self.select(&set).await
+            }
+            Retort::Report => self.report().await,
+            Retort::Remember(set) => {
+                // In this order so we don't yell the input back.
+                let yell = self.select(&set).await;
+                self.remember(&set, text).await;
+                yell
+            }
+        };
+
+        retort
+    }
+
+    /// Increment the named counter, ignoring errors because this is a nice-to-have not a requirement.
+    async fn increment(&self, counter: &str) {
+        let mut r = self.db.clone();
+        let _ = r.incr::<&str, u32, u32>(counter, 1_u32).await;
+    }
+
+    /// LOUDBOT REMEMBERS WHAT YOU SHOUT.
+    async fn remember(&self, key: &str, shout: &str) {
+        let mut r = self.db.clone();
+        let _ = r.sadd::<&str, &str, u32>(key, shout).await;
+    }
+
+    /// Select a random message from the named message set.
+    pub async fn select(&self, key: &str) -> Option<String> {
+        let mut r = self.db.clone();
+        let retort: RString = r.srandmember(key).await;
+        match retort {
+            Err(e) => {
+                log::warn!("Failed to get a random set member from redis: {:?}", e);
+                None
+            }
+            Ok(retort) => Some(retort.to_uppercase()),
+        }
+    }
+
+    /// Respond to the `report` command. This is the only remaining place
+    /// that needs specific redis key strings.
+    async fn report(&self) -> Option<String> {
+        let mut r = self.db.clone();
+
+        let count = match r.get::<&str, String>(COUNT).await {
+            Ok(c) => c,
+            Err(_) => "AN UNKNOWN NUMBER OF".to_string(),
+        };
+        let cardinality = match r.scard::<&str, u32>(YELLS).await {
+            Ok(c) => c.to_string(),
+            Err(_) => "AN UNKNOWN NUMBER OF".to_string(),
+        };
+        let key = format!("{MALCOLM}_COUNT");
+        let malcolms = match r.get::<&str, String>(&key).await {
+            Ok(c) => c,
+            Err(_) => "AN UNKNOWN NUMBER OF".to_string(),
+        };
+        let version = env!("CARGO_PKG_VERSION");
+        Some(format!("I AM RUNNING LOUDOS VERSION {version}. I HAVE YELLED {count} TIMES. I HAVE {cardinality} THINGS TO YELL AT YOU. MALCOLM TUCKER HAS BEEN SUMMONED {malcolms} TIMES."))
+    }
+}
+
+use rand::distributions::Uniform;
+use rand::prelude::*;
+use regex::{Regex, RegexSet};
 
 /// Characters to strip out before considering the loudness of the input. This pattern depends on the order of the chunks.
 const IGNORE: &str = r":\w+:|<@\w+>|[\W\d[[:punct:]]]|s+";
@@ -24,7 +141,7 @@ const IGNORE: &str = r":\w+:|<@\w+>|[\W\d[[:punct:]]]|s+";
 const SW: &str = r"\b(?i)(LUKE +SKYWALKER|LEIA|SKYWALKER|ORGANA|TARKIN|LIGHTSABER|MILLENIUM +FALCON|DARTH +VADER|VADER|HAN +SOLO|OBIWAN|OBI-WAN|KENOBI|JABBA|CHEWIE|CHEWBACCA|TATOOINE|STAR +WARS?|DEATH +STAR|ALDERAAN|YAVIN|ENDOR)\b";
 
 /// Roll a mythical d100.
-pub fn roll_the_dice() -> u8 {
+fn roll_the_dice() -> u8 {
     let rng = thread_rng();
     let die_range = Uniform::new_inclusive(1, 100);
     let mut dice = die_range.sample_iter(rng);
