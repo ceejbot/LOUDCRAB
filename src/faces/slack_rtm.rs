@@ -1,24 +1,42 @@
-use slack_api::chat::PostMessageRequest;
+use slack::{Error, Event, RtmClient};
+use slack_api;
+use slack_api::Message;
+
 use crate::Loudbot;
 
-pub struct LoudbotSlack {
+pub struct LoudbotRTM {
     /// the API token we must send to Slack
     slack_token: String,
-    /// the verification token Slack must send to us
-    pub verification: String,
     /// our loudbot brain
-    brain: Loudbot
+    brain: Loudbot,
 }
 
-impl LoudbotSlack {
-    pub fn new(slack_token: String, verification: String, brain: Loudbot) -> Self {
-        LoudbotSlack { slack_token, verification, brain }
+impl slack::EventHandler for LoudbotRTM {
+    fn on_event(&mut self, cli: &RtmClient, event: Event) {
+        match event {
+            Event::Hello => { self.maybe_toast(); },
+            Event::Message(ref prompt) => {
+                // whoops hello async
+                self.handle_message(prompt);
+            },
+            Event::MessageSent(_) => {},
+            _ => log::debug!("on_event(event: {:?})", event),
+        };
     }
 
-    // Given data about an incoming request, verify that it came from Slack.
-    pub async fn verify_request() -> anyhow::Result<bool> {
-        // TODO unimplemented
-        Ok(false)
+    fn on_close(&mut self, _cli: &RtmClient) {
+        log::warn!("on_close; loudie has no idea what to do here yet");
+        // TODO reconnect
+    }
+
+    fn on_connect(&mut self, _cli: &RtmClient) {
+        log::info!("THIS BATTLESTATION WILL BE FULLY OPERATIONAL SHORTLY");
+    }
+}
+
+impl LoudbotRTM {
+    pub fn new(slack_token: String, brain: Loudbot) -> Self {
+        LoudbotRTM { slack_token, brain }
     }
 
     /// If we have a welcome channel, send a toast to it.
@@ -32,19 +50,18 @@ impl LoudbotSlack {
     }
 
     /// Process an incoming message from slack and make decisions based on its envelope.
-    /// Slack-specific
-    pub async fn handle_message(&self, incoming: slack_api::Message) -> anyhow::Result<bool> {
+    pub async fn handle_message(&self, incoming: &Message) -> anyhow::Result<bool> {
         match incoming {
-            slack_api::Message::BotMessage(ref _y) => {
+            Message::BotMessage(ref _y) => {
                 log::debug!("skipping bot message");
                 Ok(false)
             }
-            slack_api::Message::Standard(ref prompt) => {
+            Message::Standard(ref prompt) => {
                 if let Some(_bot_id) = &prompt.bot_id {
                     log::info!("skipping bot message");
                     Ok(false)
                 } else if prompt.text.is_none() || prompt.channel.is_none() {
-                   Ok(false) // nothing to be done
+                    Ok(false) // nothing to be done
                 } else {
                     let text = prompt.text.as_ref().unwrap(); // we know this is safe
                     let retort = self.brain.process(text).await;
@@ -63,7 +80,11 @@ impl LoudbotSlack {
     }
 
     /// Post a yell and record that we're doing so. Prefer this function to yell.
-    pub async fn yell(&self, prompt: &slack_api::MessageStandard, retort: &str) -> anyhow::Result<bool> {
+    pub async fn yell(
+        &self,
+        prompt: &slack_api::MessageStandard,
+        retort: &str,
+    ) -> anyhow::Result<bool> {
         let channel = prompt.channel.as_ref().unwrap();
         log::info!(
             "yelling: `{retort}`; prompt: `{}`' channel: `{channel}`",
@@ -81,13 +102,13 @@ impl LoudbotSlack {
         text: &str,
         maybe_ts: Option<slack_api::Timestamp>,
     ) -> Result<bool, anyhow::Error> {
-        let message = PostMessageRequest {
+        let message = slack_api::chat::PostMessageRequest {
             channel,
             text,
             thread_ts: maybe_ts,
             unfurl_links: Some(true),
             link_names: Some(true),
-            ..PostMessageRequest::default()
+            ..slack_api::chat::PostMessageRequest::default()
         };
 
         let client = slack_api::default_client()?;

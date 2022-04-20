@@ -18,6 +18,10 @@ simple_logger = "2.1.0"
 axum = "0.5.1"
 tokio = { version = "1.17.0", features = ["full"] }
 
+[dependencies.slack]
+#version = "0.25.0"
+git = "https://github.com/ceejbot/slack-rs-api"
+
 [dependencies.slack_api]
 default-features = false
 features = ["async", "reqwest", "with_rustls"]
