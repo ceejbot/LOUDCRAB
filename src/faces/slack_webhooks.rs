@@ -1,6 +1,6 @@
 use slack_api as slack;
 use slack::chat::PostMessageRequest;
-use super::Loudbot;
+use crate::Loudbot;
 
 pub struct LoudbotSlack {
     /// the API token we must send to Slack
