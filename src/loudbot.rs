@@ -1,3 +1,6 @@
+//! THE SHOUTING ENGINE. This module glues the bot's memory (redis) to
+//! the logic that selects retorts if appropriate. It is expected to be
+//! consumed by a front end, such as a Slack bot client.
 use anyhow::{Context, Result};
 use redis::aio::MultiplexedConnection;
 use redis::AsyncCommands;
@@ -6,21 +9,24 @@ use std::convert::AsRef;
 
 type RString = std::result::Result<String, redis::RedisError>;
 
-// These are redit key strings. This needs to be cleaned up.
-// really these are names of easter eggs
+// TODO refactor
+// These magic constants are redit key strings but are really the
+// names of easter eggs. The "LB:" prefix is predictable.
 
 /// The Redis key for the yell set.
 const YELLS: &str = "LB:YELLS";
-/// Redis key for the set of possible yells
-const STARS: &str = "LB:SW";
 /// Redis key for set of famous movie quotes
-const SHIPS: &str = "LB:SHIPS";
+const STARS: &str = "LB:SW";
 /// Redis key for set of Culture ship names
-const CATS: &str = "LB:CAT";
+const SHIPS: &str = "LB:SHIPS";
 /// Redis key for set of cat facts
-const COUNT: &str = "LB:COUNT";
-/// Redis key for count of times yelled
+const CATS: &str = "LB:CAT";
+/// Redis key for a set of URLs for GIFs of Malcolm Tucker.
 const MALCOLM: &str = "LB:MALC";
+/// Redis key for set of Moby Dick chapter titles.
+const WHALES: &str = "LB:WHALES";
+/// Redis key for count of times yelled
+const COUNT: &str = "LB:COUNT";
 
 /// The LOUDBOT struct (sadly not shoutcased) is our app state.
 ///
@@ -35,20 +41,14 @@ pub struct Loudbot {
 }
 
 impl Loudbot {
-    pub async fn new(
-        redis_uri: String,
-        malc_chance: u8,
-    ) -> Result<Loudbot, anyhow::Error> {
+    pub async fn new(redis_uri: String, malc_chance: u8) -> Result<Loudbot, anyhow::Error> {
         let client = redis::Client::open(redis_uri.as_ref())
             .with_context(|| format!("Unable to create redis client @ {}", redis_uri))?;
         let db = client.get_multiplexed_async_std_connection().await?;
 
         let detector = Classifier::new(malc_chance);
 
-        Ok(Loudbot {
-            db,
-            detector,
-        })
+        Ok(Loudbot { db, detector })
     }
 
     pub async fn random_yell(&self) -> Option<String> {
@@ -187,6 +187,8 @@ pub struct Classifier {
     malc: Regex,
     /// "Fuckity bye" gets a special from Malcolm Tucker.
     fuckity: Regex,
+    /// The Moby Dick easter egg pattern.
+    whales: Regex,
 }
 
 impl Classifier {
@@ -198,14 +200,15 @@ impl Classifier {
             malc: Regex::new("(?i)MALCOLM +TUCKER +MALCOLM +TUCKER").unwrap(),
             malc_chance,
             report: Regex::new("(?i)LOUDBOT +REPORT").unwrap(),
-            ship: Regex::new("(?i)SHIP ?NAME").unwrap(),
+            ship: Regex::new(r"(?i)\bSHIP ?NAME\b").unwrap(),
             ignore: Regex::new(IGNORE).unwrap(),
             sw: Regex::new(SW).unwrap(),
+            whales: Regex::new(r"(?i)\bMOBY +DICK\b").unwrap(),
             swears: regex::RegexSet::new(&[
                 r"(?i).*FUCK.*",
-                r"(?i)(^|\W)CUNT(\W|$)",
-                r"(?i)(^|\W)TWAT(\W|$)",
-                r"(?i)(^|\W)OMNISHAMBLES(^|\W)",
+                r"(?i)\bCUNT\b",
+                r"(?i)\bTWAT\b",
+                r"(?i)\bOMNISHAMBLES\b",
             ])
             .unwrap(),
         }
@@ -223,6 +226,9 @@ impl Classifier {
             Retort::Random(CATS.to_string())
         } else if self.ship.is_match(text) {
             Retort::Random(SHIPS.to_string())
+        } else if self.whales.is_match(text) {
+            log::info!("moby dick triggered");
+            Retort::Random(WHALES.to_string())
         } else if self.report.is_match(text) {
             Retort::Report
         } else if self.intro.is_match(text) {
@@ -298,11 +304,30 @@ mod tests {
     }
 
     #[test]
+    fn whale_easter_egg() {
+        let detector = Classifier::new(0);
+
+        assert!(detector.whales.is_match("moby dick"));
+        assert!(detector.whales.is_match("herman melville wrote moby dick which is about whales and stuff"));
+        assert!(detector.whales.is_match("moby  dick"));
+        assert!(detector.whales.is_match("MOBY DICK"));
+        assert!(!detector.whales.is_match("MOBY DICKLESS"));
+    }
+
+    #[test]
     fn scunthorpe_problem() {
         let detector = Classifier::new(100);
         assert!(
             detector.deserves_malcolm("FUCK YOU"),
             "basic swearing should be detected"
+        );
+        assert!(
+            detector.deserves_malcolm("you are a complete omnishambles"),
+            "basic swearing should be detected"
+        );
+        assert!(
+            detector.deserves_malcolm("cunt"),
+            "extremely bad word is detected"
         );
         assert!(
             !detector.deserves_malcolm("scunthorpe"),

@@ -1,6 +1,6 @@
-use slack_api as slack;
-use slack::chat::PostMessageRequest;
 use crate::Loudbot;
+use slack::chat::PostMessageRequest;
+use slack_api as slack;
 
 pub struct LoudbotSlack {
     /// the API token we must send to Slack
@@ -8,12 +8,16 @@ pub struct LoudbotSlack {
     /// the verification token Slack must send to us
     pub verification: String,
     /// our loudbot brain
-    brain: Loudbot
+    brain: Loudbot,
 }
 
 impl LoudbotSlack {
     pub fn new(slack_token: String, verification: String, brain: Loudbot) -> Self {
-        LoudbotSlack { slack_token, verification, brain }
+        LoudbotSlack {
+            slack_token,
+            verification,
+            brain,
+        }
     }
 
     // Given data about an incoming request, verify that it came from Slack.
@@ -45,7 +49,7 @@ impl LoudbotSlack {
                     log::info!("skipping bot message");
                     Ok(false)
                 } else if prompt.text.is_none() || prompt.channel.is_none() {
-                   Ok(false) // nothing to be done
+                    Ok(false) // nothing to be done
                 } else {
                     let text = prompt.text.as_ref().unwrap(); // we know this is safe
                     let retort = self.brain.process(text).await;
@@ -64,7 +68,11 @@ impl LoudbotSlack {
     }
 
     /// Post a yell and record that we're doing so. Prefer this function to yell.
-    pub async fn yell(&self, prompt: &slack::MessageStandard, retort: &str) -> anyhow::Result<bool> {
+    pub async fn yell(
+        &self,
+        prompt: &slack::MessageStandard,
+        retort: &str,
+    ) -> anyhow::Result<bool> {
         let channel = prompt.channel.as_ref().unwrap();
         log::info!(
             "yelling: `{retort}`; prompt: `{}`' channel: `{channel}`",

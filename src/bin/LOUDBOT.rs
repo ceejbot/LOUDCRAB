@@ -1,4 +1,6 @@
 //! SHOUT, SHOUT, LET IT ALL OUT
+//! This executable runs a slack loudie. It reads all config from its
+//! environment, sourcing a `.env` file if one exists.
 #![allow(non_snake_case)]
 use axum::{
     extract::Extension,
@@ -14,7 +16,7 @@ use std::collections::HashMap;
 use std::net::SocketAddr;
 use std::sync::Arc;
 
-use LOUDCRAB::{LoudbotSlack, Loudbot};
+use LOUDCRAB::{Loudbot, LoudbotSlack};
 
 /// Respond to ping. Useful for monitoring.
 async fn ping(Extension(loudie): Extension<Arc<Loudbot>>) -> String {
@@ -118,9 +120,7 @@ async fn main() {
         Err(_) => 2,
     };
 
-    let loudie = Loudbot::new(redis_uri, malc_chance)
-        .await
-        .unwrap(); // intentional
+    let loudie = Loudbot::new(redis_uri, malc_chance).await.unwrap(); // intentional
     let face = LoudbotSlack::new(slack_token, verification, loudie);
     let _ = face.maybe_toast().await; // ignoring errors
 
