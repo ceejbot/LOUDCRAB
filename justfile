@@ -21,3 +21,18 @@ release:
     @tar f {{tarfile}} -r MALCOLM CATS SEEDS SHIPS STAR_FIGHTING
     @gzip {{tarfile}}
     @echo "Release artifact in {{tarfile}}.gz"
+
+# Set the crate version and tag the repo to match.
+tag VERSION:
+	#!/usr/bin/env bash
+	status=$(git status --porcelain)
+	if [ "$status" != ""  ]; then
+		echo "There are uncommitted changes! Cowardly refusing to act."
+		exit 1
+	fi
+	tomato set package.version {{VERSION}} Cargo.toml
+	# update the lock file
+	cargo check
+	git commit Cargo.toml Cargo.lock -m "v{{VERSION}}"
+	git tag "v{{VERSION}}"
+	echo "Release tagged for version v{{VERSION}}"
