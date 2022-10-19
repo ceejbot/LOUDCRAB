@@ -23,8 +23,6 @@ const SHIPS: &str = "LB:SHIPS";
 const CATS: &str = "LB:CAT";
 /// Redis key for a set of URLs for GIFs of Malcolm Tucker.
 const MALCOLM: &str = "LB:MALC";
-/// Redis key for set of Moby Dick chapter titles.
-const WHALES: &str = "LB:WHALES";
 /// Redis key for count of times yelled
 const COUNT: &str = "LB:COUNT";
 
@@ -187,8 +185,6 @@ pub struct Classifier {
     malc: Regex,
     /// "Fuckity bye" gets a special from Malcolm Tucker.
     fuckity: Regex,
-    /// The Moby Dick easter egg pattern.
-    whales: Regex,
 }
 
 impl Classifier {
@@ -203,7 +199,6 @@ impl Classifier {
             ship: Regex::new(r"(?i)\bSHIP ?NAME\b").unwrap(),
             ignore: Regex::new(IGNORE).unwrap(),
             sw: Regex::new(SW).unwrap(),
-            whales: Regex::new(r"(?i)\bMOBY +DICK\b").unwrap(),
             swears: regex::RegexSet::new(&[
                 r"(?i).*FUCK.*",
                 r"(?i)\bCUNT\b",
@@ -226,9 +221,6 @@ impl Classifier {
             Retort::Random(CATS.to_string())
         } else if self.ship.is_match(text) {
             Retort::Random(SHIPS.to_string())
-        } else if self.whales.is_match(text) {
-            log::info!("moby dick triggered");
-            Retort::Random(WHALES.to_string())
         } else if self.report.is_match(text) {
             Retort::Report
         } else if self.intro.is_match(text) {
@@ -301,17 +293,6 @@ mod tests {
         assert!(!patt.is_match("fluke"));
         assert!(!patt.is_match("vendor"));
         assert!(patt.is_match("third moon of Endor"));
-    }
-
-    #[test]
-    fn whale_easter_egg() {
-        let detector = Classifier::new(0);
-
-        assert!(detector.whales.is_match("moby dick"));
-        assert!(detector.whales.is_match("herman melville wrote moby dick which is about whales and stuff"));
-        assert!(detector.whales.is_match("moby  dick"));
-        assert!(detector.whales.is_match("MOBY DICK"));
-        assert!(!detector.whales.is_match("MOBY DICKLESS"));
     }
 
     #[test]

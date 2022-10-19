@@ -1,7 +1,7 @@
 #![allow(non_snake_case)]
 //! SEED fills out redis with data for all the special features and then
 //! adds shouts from files listed as arguments.
-//! Example usage: `SEED SEEDS WHALES custom.txt`
+//! Example usage: `SEED SEEDS custom.txt`
 //! All seed files must be newline-delimited text files.
 use anyhow::{Context, Result};
 use dotenv::dotenv;
@@ -72,7 +72,6 @@ fn main() -> Result<()> {
     seed_from_file(&mut rcon, "STAR_FIGHTING", &swkey, true)?;
     seed_from_file(&mut rcon, "SHIPS", &shipkey, true)?;
     seed_from_file(&mut rcon, "MALCOLM", &malckey, true)?;
-    seed_from_file(&mut rcon, "WHALES", &format!("{}:WHALES", redis_prefix), true)?;
 
     for f in std::env::args().skip(1) {
         seed_from_file(&mut rcon, &f, &yellkey, false)?;
