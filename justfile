@@ -36,3 +36,6 @@ tag VERSION:
 	git commit Cargo.toml Cargo.lock -m "v{{VERSION}}"
 	git tag "v{{VERSION}}"
 	echo "Release tagged for version v{{VERSION}}"
+
+seed:
+    @cargo run --bin SEED SEEDS

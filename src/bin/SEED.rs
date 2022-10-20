@@ -61,6 +61,8 @@ fn main() -> Result<()> {
         .get_connection()
         .with_context(|| format!("Unable to connect to redis @ {}", redis_uri))?;
 
+    println!("Saving seed data to redis @ {redis_uri}");
+
     let catkey = format!("{}:CAT", redis_prefix);
     let malckey = format!("{}:MALC", redis_prefix);
     let shipkey = format!("{}:SHIPS", redis_prefix);

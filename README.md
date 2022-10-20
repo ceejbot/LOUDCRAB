@@ -15,7 +15,7 @@ Config vars:
 - `SLACK_TOKEN`: Your slack api token. Required.
 - `VERIFICATION_TOKEN`: The verification token in your app settings. Slack says this is deprecated, but it still sends it with every event it posts.
 - `ROUTE_PREFIX` - an optional string to use to prefix LOUDBOT's two routes. Defaults to empty string.
-- `Redis_URL`: A URI giving the host:port of your Redis. Defaults to `Redis://localhost:6379`
+- `REDIS_URL`: A URI giving the host:port of your Redis. Defaults to `Redis://localhost:6379`
 - `WELCOME_CHANNEL`: The human name of the channel LOUDBOT should toast in when it starts up. Optional.
 - `TUCKER_CHANCE`: The percentage chance [Malcolm Tucker](https://en.wikipedia.org/wiki/Malcolm_Tucker) will be invoked if you swear. Defaults to 2%. Malcolm only appears if certain four-letter words are used, so there is zero chance of sweary gifs in your Slack if you yourselves do not swear. Setting this to zero deactivates all Tucker appearances.
 - `RUST_LOG`: One of `trace`, `debug`, `info`, `warn`, following [env_logger](https://lib.rs/crates/env_logger) convention.
