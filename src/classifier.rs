@@ -202,15 +202,13 @@ impl Classifier {
     }
 
     pub async fn report(&self, db: MultiplexedConnection) -> String {
-        futures::future::join_all(self.triggers.iter().map(|t| {
+        let mut lines = futures::future::join_all(self.triggers.iter().map(|t| {
             let r = db.clone();
             async move {
                 Classifier::trigger_report(r, t).await
             }
         }))
         .await;
-
-        let mut lines = Vec::new();
 
         let mut r = db.clone();
         let malcolms = match r.get::<&str, String>("LB:MALC_COUNT").await {
