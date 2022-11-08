@@ -18,7 +18,7 @@ docs:
 release:
     @cargo build --release
     @tar cf {{tarfile}} -C target/release LOUDBOT PRUNE SEED
-    @tar f {{tarfile}} -r MALCOLM CATS SEEDS SHIPS STAR_FIGHTING
+    @tar f {{tarfile}} -r SEEDS
     @gzip {{tarfile}}
     @echo "Release artifact in {{tarfile}}.gz"
 

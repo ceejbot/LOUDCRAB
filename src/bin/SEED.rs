@@ -63,17 +63,7 @@ fn main() -> Result<()> {
 
     println!("Saving seed data to redis @ {redis_uri}");
 
-    let catkey = format!("{}:CAT", redis_prefix);
-    let malckey = format!("{}:MALC", redis_prefix);
-    let shipkey = format!("{}:SHIPS", redis_prefix);
-    let swkey = format!("{}:SW", redis_prefix);
     let yellkey = format!("{}:YELLS", redis_prefix);
-
-    seed_from_file(&mut rcon, "CATS", &catkey, true)
-        .with_context(|| "Trying to write to redis failed utterly.")?;
-    seed_from_file(&mut rcon, "STAR_FIGHTING", &swkey, true)?;
-    seed_from_file(&mut rcon, "SHIPS", &shipkey, true)?;
-    seed_from_file(&mut rcon, "MALCOLM", &malckey, true)?;
 
     for f in std::env::args().skip(1) {
         seed_from_file(&mut rcon, &f, &yellkey, false)?;

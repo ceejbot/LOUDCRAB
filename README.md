@@ -30,7 +30,7 @@ Config vars:
 4. LOUDBOT needs these permissions: `chat:write`, `chat:write:customize`, `emoji:read`, `reactions:read`, `reactions:write`.
 5. Install the app into your Slack team. Take note of the bot user access token; this is `SLACK_TOKEN`.
 6. Provide configuration via environment variables. You can use a `.env` file if you wish.
-7. Run `SEED`. It takes an optional list of file paths, which must be newline-delimited text files. It stores each line as a shout in your backing Redis. If you have no seeds, why not use the provided classic set in [`SEEDS`](https://github.com/ceejbot/LOUDCRAB/blob/latest/SEEDS)? You don't need to run this to have a functional `LOUDBOT`, but some easter eggs will not function without seeding data into Redis.
+7. Run `SEED`. It takes an optional list of file paths, which must be newline-delimited text files. It stores each line as a shout in your backing Redis. If you have no seeds, why not use the provided classic set in [`SEEDS`](https://github.com/ceejbot/LOUDCRAB/blob/latest/SEEDS)? You don't need to run this to have a functional `LOUDBOT`, but LOUDBOT won't have a lot to say without it.
 8. Run `LOUDBOT` as a daemon where it has access to the Redis.  If you gave it a toast channel, a working LOUDBOT will toast you now. No toast? Double-check your auth token.
 9. Back on the Slack website, add __Event Subscriptions__ as a feature for your app. The request url should be `/incoming` plus whatever route prefix you set up (if indeed you need a prefix). This step needs to be last because Slack will immediately post a challenge to the URL and will not send events until the app responds.
 10. Subscribe to these bot events: `app_mention`, `message.channels` and `reaction_added`.
