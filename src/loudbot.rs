@@ -51,7 +51,7 @@ impl Loudbot {
             Retort::Canned(r) => Some(r),
             Retort::Random(set) => {
                 // Every named set of responses has a corresponding counter.
-                let counter = format!("{set}_COUNT");
+                let counter = format!("LB:{set}_COUNT");
                 self.increment(&counter).await;
                 self.select(&format!("LB:{set}")).await
             }
