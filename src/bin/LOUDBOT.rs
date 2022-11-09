@@ -120,7 +120,7 @@ async fn main() {
         Err(_) => 2,
     };
 
-    let loudie = Loudbot::new(redis_uri, malc_chance).await.unwrap(); // intentional
+    let loudie = Loudbot::new(redis_uri, malc_chance).unwrap(); // intentional
     let face = LoudbotSlack::new(slack_token, verification, loudie);
     let _ = face.maybe_toast().await; // ignoring errors
 

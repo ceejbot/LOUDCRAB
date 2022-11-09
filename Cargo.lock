@@ -7,6 +7,7 @@ name = "LOUDCRAB"
 version = "0.4.2"
 dependencies = [
  "anyhow",
+ "async-once-cell",
  "axum",
  "dotenv",
  "futures",
@@ -132,6 +133,12 @@ checksum = "479db852db25d9dbf6204e6cb6253698f175c15726470f78af0d918e99d6156e"
 dependencies = [
  "event-listener",
 ]
+
+[[package]]
+name = "async-once-cell"
+version = "0.4.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f61305cacf1d0c5c9d3ee283d22f8f1f8c743a18ceb44a1b102bd53476c141de"
 
 [[package]]
 name = "async-std"
