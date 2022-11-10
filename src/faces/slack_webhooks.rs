@@ -29,8 +29,7 @@ impl LoudbotSlack {
     /// If we have a welcome channel, send a toast to it.
     pub async fn maybe_toast(&self) -> anyhow::Result<bool> {
         if let Ok(toast) = std::env::var("WELCOME_CHANNEL") {
-            self.send_message(&toast, "THIS LOUDBOT IS NOW SCUTTLING", None)
-                .await
+            self.send_message(&toast, "THIS LOUDBOT IS NOW SCUTTLING", None).await
         } else {
             Ok(false)
         }
@@ -68,11 +67,7 @@ impl LoudbotSlack {
     }
 
     /// Post a yell and record that we're doing so. Prefer this function to yell.
-    pub async fn yell(
-        &self,
-        prompt: &slack::MessageStandard,
-        retort: &str,
-    ) -> anyhow::Result<bool> {
+    pub async fn yell(&self, prompt: &slack::MessageStandard, retort: &str) -> anyhow::Result<bool> {
         let channel = prompt.channel.as_ref().unwrap();
         log::info!(
             "yelling: `{retort}`; prompt: `{}`' channel: `{channel}`",

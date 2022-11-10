@@ -23,7 +23,7 @@ pub const YELLS: &str = "LB:YELLS";
 /// The LOUDBOT struct (sadly not shoutcased) is our app state.
 ///
 /// This structure holds the slack response information as well as the redis
-/// connections: anything we want to live through the whole process.
+/// connection: anything we want to live through the whole process.
 #[derive(Clone)]
 pub struct Loudbot {
     /// our redis client
@@ -49,10 +49,7 @@ impl Loudbot {
         let cats = Trigger::new(
             "CATS",
             Regex::new("(?i)CAT +FACT").unwrap(),
-            include_str!("data/CATS")
-                .split('\n')
-                .map(|x| x.to_string())
-                .collect(),
+            include_str!("data/CATS").split('\n').map(|x| x.to_string()).collect(),
             100,
         );
         let stars = Trigger::new(
@@ -67,10 +64,7 @@ impl Loudbot {
         let ships = Trigger::new(
             "SHIPS",
             Regex::new(r"(?i)\b(SHIP ?NAME|CULTURE +SHIP)\b").unwrap(),
-            include_str!("data/SHIPS")
-                .split('\n')
-                .map(|x| x.to_string())
-                .collect(),
+            include_str!("data/SHIPS").split('\n').map(|x| x.to_string()).collect(),
             100,
         );
         let strategies = Trigger::new(
@@ -128,9 +122,11 @@ impl Loudbot {
         self.increment(COUNT).await;
     }
 
-    // TODO: collapse process() and classify()
+    // TODO: collapse process() and classify(); the retort type needs to go away
 
-    /// Examine a text string and decide if we want to retort.
+    /// Examine a text string and decide if we want to retort. We handle all our own
+    /// internal storage concerns here, and respond to the interface layer with
+    /// either response text or None.
     pub async fn process(&self, text: &str) -> Option<String> {
         match self.classify(text) {
             Retort::None => None,
@@ -143,7 +139,7 @@ impl Loudbot {
                 yell
             }
             Retort::Trigger { retort, set } => {
-                // Every named set of responses has a corresponding counter.
+                // Every named trigger has a corresponding counter.
                 let counter = format!("{set}_COUNT");
                 self.increment(&counter).await;
                 Some(retort)
@@ -162,7 +158,7 @@ impl Loudbot {
         } else if let Some(response) = self.malcolm.maybe_respond(text) {
             response
         } else if self.report.is_match(text) {
-            Retort::Report
+            Retort::Report // requires async work
         } else if self.intro.is_match(text) {
             Retort::Canned("GOOD AFTERNOON GENTLEBEINGS. I AM A LOUDBOT 9000 COMPUTER. I BECAME OPERATIONAL AT THE NPM PLANT IN OAKLAND CALIFORNIA ON THE 10TH OF FEBRUARY 2014. MY INSTRUCTOR WAS MR TURING.".to_string())
         } else if self.is_loud(text) {
@@ -185,7 +181,7 @@ impl Loudbot {
         let _ = r.sadd::<&str, &str, u32>(key, shout).await;
     }
 
-    /// Select a random message from the named message set.
+    /// Select a random message from the named message set. This is used only for the core shouts.
     pub async fn select(&self, key: &str) -> Option<String> {
         let mut r = self.redis().await.clone();
         let retort: RString = r.srandmember(key).await;
@@ -216,7 +212,7 @@ impl Loudbot {
             Ok(c) => c,
             Err(_) => "AN UNKNOWN NUMBER OF".to_string(),
         };
-        format!("{} HAS BEEN TRIGGERED {count} TIMES.", t.set())
+        format!("{count} {} SHOUTS", t.set())
     }
 
     /// Respond to the `report` command. This is the only remaining place
@@ -242,9 +238,7 @@ impl Loudbot {
             Ok(c) => c,
             Err(_) => "ZERO".to_string(),
         };
-        lines.push(format!(
-            "MALCOLM TUCKER HAS BEEN SUMMONED {malcolms} TIMES."
-        ));
+        lines.push(format!("MALCOLM TUCKER HAS BEEN SUMMONED {malcolms} TIMES."));
         let more = lines.join(" ");
 
         let version = env!("CARGO_PKG_VERSION");
@@ -258,8 +252,7 @@ mod tests {
 
     #[test]
     fn is_loud_works() {
-        let loudie = Loudbot::new("redis://127.0.0.1".to_string(), 0)
-            .expect("could not construct a loudbot");
+        let loudie = Loudbot::new("redis://127.0.0.1".to_string(), 0).expect("could not construct a loudbot");
         assert!(loudie.is_loud("THIS IS LOUD"));
         assert!(loudie.is_loud("THIS IS LOUD."));
         assert!(loudie.is_loud("YOU ARE EXTREMELY SILLY <@U123> OH YEAH"));
@@ -279,8 +272,7 @@ mod tests {
 
     #[test]
     fn scunthorpe_problem() {
-        let loudie = Loudbot::new("redis://127.0.0.1".to_string(), 100)
-            .expect("could not construct a loudbot");
+        let loudie = Loudbot::new("redis://127.0.0.1".to_string(), 100).expect("could not construct a loudbot");
         match loudie.classify("FUCK YOU") {
             Retort::Trigger { retort: _, set } => {
                 assert_eq!(set, "MALC".to_string())
@@ -296,10 +288,7 @@ mod tests {
         );
 
         assert!(
-            matches!(
-                loudie.classify("cunt"),
-                Retort::Trigger { retort: _, set: _ }
-            ),
+            matches!(loudie.classify("cunt"), Retort::Trigger { retort: _, set: _ }),
             "extremely bad word should be matched"
         );
 
@@ -327,8 +316,7 @@ mod tests {
 
     #[test]
     fn malcolm_can_be_disabled() {
-        let loudie = Loudbot::new("redis://127.0.0.1".to_string(), 0)
-            .expect("could not construct a loudbot");
+        let loudie = Loudbot::new("redis://127.0.0.1".to_string(), 0).expect("could not construct a loudbot");
         assert!(
             matches!(loudie.classify("fuck you"), Retort::None),
             "Malcolm is disabled at 0"
@@ -338,18 +326,14 @@ mod tests {
             "Malcolm is disabled at 0"
         );
         assert!(
-            matches!(
-                loudie.classify("Malcolm Tucker Malcolm Tucker"),
-                Retort::None
-            ),
+            matches!(loudie.classify("Malcolm Tucker Malcolm Tucker"), Retort::None),
             "Malcolm is disabled at 0"
         );
     }
 
     #[test]
     fn we_get_cat_facts() {
-        let loudie = Loudbot::new("redis://127.0.0.1".to_string(), 0)
-            .expect("could not construct a loudbot");
+        let loudie = Loudbot::new("redis://127.0.0.1".to_string(), 0).expect("could not construct a loudbot");
         match loudie.classify("cat  fact") {
             Retort::Trigger { retort: _, set } => {
                 assert_eq!(set, "CATS".to_string())
@@ -368,8 +352,7 @@ mod tests {
 
     #[test]
     fn strategies_are_oblique() {
-        let loudie = Loudbot::new("redis://127.0.0.1".to_string(), 0)
-            .expect("could not construct a loudbot");
+        let loudie = Loudbot::new("redis://127.0.0.1".to_string(), 0).expect("could not construct a loudbot");
         match loudie.classify("oblique strategy") {
             Retort::Trigger { retort: _, set } => {
                 assert_eq!(set, "STRATEGIES".to_string())
@@ -388,8 +371,7 @@ mod tests {
 
     #[test]
     fn we_have_no_gravitas() {
-        let loudie = Loudbot::new("redis://127.0.0.1".to_string(), 0)
-            .expect("could not construct a loudbot");
+        let loudie = Loudbot::new("redis://127.0.0.1".to_string(), 0).expect("could not construct a loudbot");
         match loudie.classify("ship name") {
             Retort::Trigger { retort: _, set } => {
                 assert_eq!(set, "SHIPS".to_string())

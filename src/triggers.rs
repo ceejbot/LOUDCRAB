@@ -55,12 +55,10 @@ impl Trigger {
             return None;
         }
 
-        self.data
-            .choose(&mut rand::thread_rng())
-            .map(|retort| Retort::Trigger {
-                retort: retort.to_string(),
-                set: self.set().to_string(),
-            })
+        self.data.choose(&mut rand::thread_rng()).map(|retort| Retort::Trigger {
+            retort: retort.to_string(),
+            set: self.set().to_string(),
+        })
     }
 
     pub fn new(base: &str, pattern: Regex, data: Vec<String>, chance: u8) -> Self {

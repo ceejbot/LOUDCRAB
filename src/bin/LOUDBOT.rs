@@ -55,10 +55,7 @@ async fn incoming(
     // This clone is to avoid a partial move of incoming so we can debug print later. I hate it.
     let res = if let Some(v) = incoming.message_type.clone() {
         if v == "url_verification" {
-            let challenger = incoming.rest["challenge"]
-                .as_str()
-                .unwrap_or_default()
-                .to_string();
+            let challenger = incoming.rest["challenge"].as_str().unwrap_or_default().to_string();
             let retort = serde_json::json!({
                 "challenge": challenger,
             });
@@ -70,10 +67,7 @@ async fn incoming(
                     Err(e) => log::warn!("error handling callback: {:?}", e),
                 }
             } else {
-                log::warn!(
-                    "incoming post did not have a valid structure {:?}",
-                    incoming
-                );
+                log::warn!("incoming post did not have a valid structure {:?}", incoming);
             }
             // respond with 200 OK no matter what (we should do this immediately, but we can't)
             (StatusCode::OK, "OK".to_string())
@@ -94,14 +88,12 @@ async fn main() {
     dotenv().ok();
     simple_logger::init_with_env().ok();
 
-    let slack_token = std::env::var("SLACK_TOKEN")
-        .expect("You must provide a valid slack api token in the env var SLACK_TOKEN.");
-    let verification = std::env::var("VERIFICATION_TOKEN").expect(
-        "You must provide your slack verification token in the env var VERIFICATION_TOKEN.",
-    );
+    let slack_token =
+        std::env::var("SLACK_TOKEN").expect("You must provide a valid slack api token in the env var SLACK_TOKEN.");
+    let verification = std::env::var("VERIFICATION_TOKEN")
+        .expect("You must provide your slack verification token in the env var VERIFICATION_TOKEN.");
 
-    let redis_uri =
-        std::env::var("REDIS_URL").unwrap_or_else(|_| "redis://127.0.0.1:6379".to_string());
+    let redis_uri = std::env::var("REDIS_URL").unwrap_or_else(|_| "redis://127.0.0.1:6379".to_string());
     log::info!("BRAIN @ {}", redis_uri);
     let host = std::env::var("HOST").unwrap_or_else(|_| "127.0.0.1".to_string());
     let port = std::env::var("PORT").unwrap_or_else(|_| "5000".to_string());
@@ -110,10 +102,7 @@ async fn main() {
         Ok(v) => match v.parse::<u8>() {
             Ok(x) => std::cmp::min(x, 100),
             Err(e) => {
-                log::warn!(
-                    "Failed to parse TUCKER_CHANCE as u8; falling back to 2%; {:?}",
-                    e
-                );
+                log::warn!("Failed to parse TUCKER_CHANCE as u8; falling back to 2%; {:?}", e);
                 2
             }
         },
@@ -133,8 +122,5 @@ async fn main() {
     log::info!("LOUDBOT TUNED FOR SHOUTS COMING IN ON {}", &addr);
 
     let addr: SocketAddr = addr.parse().unwrap();
-    axum::Server::bind(&addr)
-        .serve(app.into_make_service())
-        .await
-        .unwrap();
+    axum::Server::bind(&addr).serve(app.into_make_service()).await.unwrap();
 }
