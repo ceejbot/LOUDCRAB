@@ -19,6 +19,7 @@ axum = "0.5.16"
 tokio = { version = "1.21.2", features = ["full"] }
 futures = "0.3.25"
 async-once-cell = "0.4.2"
+env_logger = "0.9.3"
 
 [dependencies.slack_api]
 default-features = false
