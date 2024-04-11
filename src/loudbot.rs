@@ -49,7 +49,10 @@ impl Loudbot {
         let cats = Trigger::new(
             "CATS",
             Regex::new("(?i)CAT +FACT").unwrap(),
-            include_str!("data/CATS").split('\n').map(|x| x.to_string()).collect(),
+            include_str!("data/CATS")
+                .split('\n')
+                .map(|x| x.to_string())
+                .collect(),
             100,
         );
         let stars = Trigger::new(
@@ -64,7 +67,10 @@ impl Loudbot {
         let ships = Trigger::new(
             "SHIPS",
             Regex::new(r"(?i)\b(SHIP ?NAME|CULTURE +SHIP)\b").unwrap(),
-            include_str!("data/SHIPS").split('\n').map(|x| x.to_string()).collect(),
+            include_str!("data/SHIPS")
+                .split('\n')
+                .map(|x| x.to_string())
+                .collect(),
             100,
         );
         let strategies = Trigger::new(
@@ -105,7 +111,7 @@ impl Loudbot {
     async fn redis(&self) -> &MultiplexedConnection {
         REDIS
             .get_or_init(async {
-                match self.client.get_multiplexed_async_std_connection().await {
+                match self.client.get_multiplexed_async_connection().await {
                     Ok(db) => db,
                     Err(e) => panic!("{}", e),
                 }
@@ -238,7 +244,9 @@ impl Loudbot {
             Ok(c) => c,
             Err(_) => "ZERO".to_string(),
         };
-        lines.push(format!("MALCOLM TUCKER HAS BEEN SUMMONED {malcolms} TIMES."));
+        lines.push(format!(
+            "MALCOLM TUCKER HAS BEEN SUMMONED {malcolms} TIMES."
+        ));
         let more = lines.join(" ");
 
         let version = env!("CARGO_PKG_VERSION");
@@ -252,7 +260,8 @@ mod tests {
 
     #[test]
     fn is_loud_works() {
-        let loudie = Loudbot::new("redis://127.0.0.1".to_string(), 0).expect("could not construct a loudbot");
+        let loudie = Loudbot::new("redis://127.0.0.1".to_string(), 0)
+            .expect("could not construct a loudbot");
         assert!(loudie.is_loud("THIS IS LOUD"));
         assert!(loudie.is_loud("THIS IS LOUD."));
         assert!(loudie.is_loud("YOU ARE EXTREMELY SILLY <@U123> OH YEAH"));
@@ -272,7 +281,8 @@ mod tests {
 
     #[test]
     fn scunthorpe_problem() {
-        let loudie = Loudbot::new("redis://127.0.0.1".to_string(), 100).expect("could not construct a loudbot");
+        let loudie = Loudbot::new("redis://127.0.0.1".to_string(), 100)
+            .expect("could not construct a loudbot");
         match loudie.classify("FUCK YOU") {
             Retort::Trigger { retort: _, set } => {
                 assert_eq!(set, "MALC".to_string())
@@ -288,7 +298,10 @@ mod tests {
         );
 
         assert!(
-            matches!(loudie.classify("cunt"), Retort::Trigger { retort: _, set: _ }),
+            matches!(
+                loudie.classify("cunt"),
+                Retort::Trigger { retort: _, set: _ }
+            ),
             "extremely bad word should be matched"
         );
 
@@ -316,7 +329,8 @@ mod tests {
 
     #[test]
     fn malcolm_can_be_disabled() {
-        let loudie = Loudbot::new("redis://127.0.0.1".to_string(), 0).expect("could not construct a loudbot");
+        let loudie = Loudbot::new("redis://127.0.0.1".to_string(), 0)
+            .expect("could not construct a loudbot");
         assert!(
             matches!(loudie.classify("fuck you"), Retort::None),
             "Malcolm is disabled at 0"
@@ -326,14 +340,18 @@ mod tests {
             "Malcolm is disabled at 0"
         );
         assert!(
-            matches!(loudie.classify("Malcolm Tucker Malcolm Tucker"), Retort::None),
+            matches!(
+                loudie.classify("Malcolm Tucker Malcolm Tucker"),
+                Retort::None
+            ),
             "Malcolm is disabled at 0"
         );
     }
 
     #[test]
     fn we_get_cat_facts() {
-        let loudie = Loudbot::new("redis://127.0.0.1".to_string(), 0).expect("could not construct a loudbot");
+        let loudie = Loudbot::new("redis://127.0.0.1".to_string(), 0)
+            .expect("could not construct a loudbot");
         match loudie.classify("cat  fact") {
             Retort::Trigger { retort: _, set } => {
                 assert_eq!(set, "CATS".to_string())
@@ -352,7 +370,8 @@ mod tests {
 
     #[test]
     fn strategies_are_oblique() {
-        let loudie = Loudbot::new("redis://127.0.0.1".to_string(), 0).expect("could not construct a loudbot");
+        let loudie = Loudbot::new("redis://127.0.0.1".to_string(), 0)
+            .expect("could not construct a loudbot");
         match loudie.classify("oblique strategy") {
             Retort::Trigger { retort: _, set } => {
                 assert_eq!(set, "STRATEGIES".to_string())
@@ -371,7 +390,8 @@ mod tests {
 
     #[test]
     fn we_have_no_gravitas() {
-        let loudie = Loudbot::new("redis://127.0.0.1".to_string(), 0).expect("could not construct a loudbot");
+        let loudie = Loudbot::new("redis://127.0.0.1".to_string(), 0)
+            .expect("could not construct a loudbot");
         match loudie.classify("ship name") {
             Retort::Trigger { retort: _, set } => {
                 assert_eq!(set, "SHIPS".to_string())

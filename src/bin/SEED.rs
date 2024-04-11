@@ -4,7 +4,7 @@
 //! Example usage: `SEED SEEDS custom.txt`
 //! All seed files must be newline-delimited text files.
 use anyhow::{Context, Result};
-use dotenv::dotenv;
+use dotenvy::dotenv;
 use regex::Regex;
 use std::env;
 use std::fs::File;
