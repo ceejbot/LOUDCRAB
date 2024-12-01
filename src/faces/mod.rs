@@ -1,5 +1,7 @@
 //! All integrations for loudbot and their common traits.
 
+use std::sync::Arc;
+
 use async_trait::async_trait;
 
 #[cfg(feature = "webhooks")]
@@ -26,6 +28,9 @@ pub trait IsLoudbotIntegration {
 
     /// Make one of these.
     fn create(brain: crate::Loudbot) -> Self;
+
+    /// Make the routes this one understands, mounted on the given prefix.
+    fn routes(prefix: &str) -> axum::Router<Arc<Self>>;
 
     /// Given data about an incoming request, verify that it came from the expected source..
     async fn verify_request() -> anyhow::Result<bool>;
