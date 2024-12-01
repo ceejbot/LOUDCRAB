@@ -2,7 +2,8 @@ use rand::distributions::Uniform;
 use rand::prelude::*;
 use regex::Regex;
 
-/// Characters to strip out before considering the loudness of the input. This pattern depends on the order of the chunks.
+/// Characters to strip out before considering the loudness of the input. This
+/// pattern depends on the order of the chunks.
 pub const IGNORE: &str = r":\w+:|<@\w+>|[\W\d[[:punct:]]]|s+";
 /// The famous movie quote trigger pattern, extracted for testing.
 pub const SW: &str = r"\b(?i)(LUKE +SKYWALKER|LEIA|SKYWALKER|ORGANA|TARKIN|LIGHTSABER|MILLENIUM +FALCON|DARTH +VADER|VADER|HAN +SOLO|OBIWAN|OBI-WAN|KENOBI|JABBA|CHEWIE|CHEWBACCA|TATOOINE|STAR +WARS?|DEATH +STAR|ALDERAAN|YAVIN|ENDOR)\b";
@@ -72,11 +73,12 @@ impl Trigger {
     }
 }
 
-// Note refactoring opportunity: this has the same API surface as the other triggers
-// but takes a little more configuration. Also, the implementation of matches is different.
-// I'd like to pull this into a trait when I can figure out how to store these in a vector
-// somewhere. A vec of Box<dyn Trigger> is not sized, however, so I can't store them on the
-// loudbot struct as that needs to go into a an arc. Maybe a once_cell static? They aren't mutable.
+// Note refactoring opportunity: this has the same API surface as the other
+// triggers but takes a little more configuration. Also, the implementation of
+// matches is different. I'd like to pull this into a trait when I can figure
+// out how to store these in a vector somewhere. A vec of Box<dyn Trigger> is
+// not sized, however, so I can't store them on the loudbot struct as that needs
+// to go into a an arc. Maybe a once_cell static? They aren't mutable.
 #[derive(Debug, Clone)]
 pub struct MalcolmSpecials {
     chance: u8,

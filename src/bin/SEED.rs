@@ -3,13 +3,14 @@
 //! adds shouts from files listed as arguments.
 //! Example usage: `SEED SEEDS custom.txt`
 //! All seed files must be newline-delimited text files.
-use anyhow::{Context, Result};
-use dotenvy::dotenv;
-use regex::Regex;
 use std::env;
 use std::fs::File;
 use std::io::{BufRead, BufReader};
 use std::path::Path;
+
+use anyhow::{Context, Result};
+use dotenvy::dotenv;
+use regex::Regex;
 
 // Message store + other data
 fn seed_from_file(

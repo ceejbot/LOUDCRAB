@@ -2,6 +2,9 @@
 //! This executable runs a slack loudie. It reads all config from its
 //! environment, sourcing a `.env` file if one exists.
 #![allow(non_snake_case)]
+use std::collections::HashMap;
+use std::sync::Arc;
+
 use axum::extract::{Extension, State};
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
@@ -9,12 +12,7 @@ use axum::routing::{get, post};
 use axum::{Json, Router};
 use dotenvy::dotenv;
 use serde::Deserialize;
-use slack_api as slack;
-
-use std::collections::HashMap;
-use std::sync::Arc;
-
-use LOUDCRAB::{Loudbot, LoudbotSlack};
+use LOUDCRAB::{IsLoudbotIntegration, Loudbot, LoudbotFace};
 
 /// Respond to ping. Useful for monitoring.
 async fn ping(Extension(loudie): Extension<Arc<Loudbot>>) -> String {
@@ -25,7 +23,7 @@ async fn ping(Extension(loudie): Extension<Arc<Loudbot>>) -> String {
     }
 }
 
-/// The parts of an incoming Slack webhook poast that we care about.
+/// The parts of an incoming Slack webhook post that we care about.
 #[derive(Clone, Deserialize, Debug)]
 struct IncomingEvent {
     /// Verification token, which must match what we expect.
@@ -34,17 +32,14 @@ struct IncomingEvent {
     #[serde(rename = "type")]
     message_type: Option<String>,
     /// Full event payload.
-    event: Option<slack::Message>,
+    event: Option<<LoudbotFace as IsLoudbotIntegration>::Msg>,
     /// The remainder of the envelope, which is only needed sometimes.
     #[serde(flatten)]
     rest: HashMap<String, serde_json::Value>,
 }
 
 /// Handle an incoming post from Slack.
-async fn incoming(
-    State(loudie): State<Arc<LoudbotSlack>>,
-    Json(incoming): Json<IncomingEvent>,
-) -> Response {
+async fn incoming(State(loudie): State<Arc<LoudbotFace>>, Json(incoming): Json<IncomingEvent>) -> Response {
     // if the token doesn't match, yell and bail
     if incoming.token != loudie.verification {
         return (StatusCode::BAD_REQUEST, "invalid payload".to_string()).into_response();
@@ -57,10 +52,7 @@ async fn incoming(
 
     match msgtype.as_str() {
         "url_verification" => {
-            let challenger = incoming.rest["challenge"]
-                .as_str()
-                .unwrap_or_default()
-                .to_string();
+            let challenger = incoming.rest["challenge"].as_str().unwrap_or_default().to_string();
             let retort = serde_json::json!({
                 "challenge": challenger,
             });
@@ -68,17 +60,15 @@ async fn incoming(
         }
         "event_callback" => {
             if let Some(event) = incoming.event {
-                match loudie.handle_message(event).await {
+                match loudie.handle_message(&event).await {
                     Ok(_) => log::debug!("handled callback successfully"),
                     Err(e) => log::warn!("error handling callback: {:?}", e),
                 }
             } else {
-                log::warn!(
-                    "incoming post did not have a valid structure {:?}",
-                    incoming
-                );
+                log::warn!("incoming post did not have a valid structure {:?}", incoming);
             }
-            // respond with 200 OK no matter what (we should do this immediately, but we can't)
+            // respond with 200 OK no matter what (we should do this immediately, but we
+            // can't)
             StatusCode::OK.into_response()
         }
         _ => {
@@ -93,24 +83,14 @@ async fn main() {
     dotenv().ok();
     simple_logger::init_with_env().ok();
 
-    let slack_token = std::env::var("SLACK_TOKEN")
-        .expect("You must provide a valid slack api token in the env var SLACK_TOKEN.");
-    let verification = std::env::var("VERIFICATION_TOKEN").expect(
-        "You must provide your slack verification token in the env var VERIFICATION_TOKEN.",
-    );
-
-    let redis_uri =
-        std::env::var("REDIS_URL").unwrap_or_else(|_| "redis://127.0.0.1:6379".to_string());
+    let redis_uri = std::env::var("REDIS_URL").unwrap_or_else(|_| "redis://127.0.0.1:6379".to_string());
     log::info!("BRAIN @ {}", redis_uri);
     let prefix = std::env::var("ROUTE_PREFIX").unwrap_or_else(|_| "".to_string());
     let malc_chance: u8 = match std::env::var("TUCKER_CHANCE") {
         Ok(v) => match v.parse::<u8>() {
             Ok(x) => std::cmp::min(x, 100),
             Err(e) => {
-                log::warn!(
-                    "Failed to parse TUCKER_CHANCE as u8; falling back to 2%; {:?}",
-                    e
-                );
+                log::warn!("Failed to parse TUCKER_CHANCE as u8; falling back to 2%; {:?}", e);
                 2
             }
         },
@@ -118,7 +98,7 @@ async fn main() {
     };
 
     let loudie = Loudbot::new(redis_uri, malc_chance).unwrap(); // intentional
-    let face = LoudbotSlack::new(slack_token, verification, loudie);
+    let face = LoudbotFace::create(loudie);
     let _ = face.maybe_toast().await; // ignoring errors
 
     let app = Router::new()
@@ -134,7 +114,5 @@ async fn main() {
         .await
         .expect(format!("COULD NOT BIND TO {}", bindstr).as_str());
     log::info!("LOUDBOT TUNED FOR SHOUTS COMING IN ON {}", &addr);
-    axum::serve(listener, app)
-        .await
-        .expect("LOUDBOT IS UNABLE TO SHOUT");
+    axum::serve(listener, app).await.expect("LOUDBOT IS UNABLE TO SHOUT");
 }

@@ -1,2 +1,4 @@
 imports_granularity = "module"
 group_imports = "StdExternalCrate"
+wrap_comments = true
+max_width = 120

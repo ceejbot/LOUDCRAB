@@ -4,24 +4,44 @@ default-run = "LOUDBOT"
 edition = "2021"
 name = "LOUDCRAB"
 version = "0.4.2"
+repository = "https://github.com/ceejbot/LOUDCRAB.git"
+description = "A SHOUTING SLACKBOT."
+homepage = "https://github.com/ceejbot/LOUDCRA"
 
 [dependencies]
 anyhow = "1.0.82"
 async-once-cell = "0.5.3"
+async-trait = "0.1.83"
 axum = "0.7.5"
 dotenvy = "0.15.7"
 #env_logger = "0.9.3"
 futures = "0.3.30"
-log = "0.4.21"
+log = "0.4.22"
 rand = "0.8.5"
-redis = { version = "0.25", features = ["tokio-rustls-comp"] }
+redis = { version = "0.27.5", features = ["tokio-rustls-comp"] }
 regex = "1.10.4"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0.115"
-simple_logger = "4.3"
+simple_logger = "5.0"
 tokio = { version = "1.37", features = ["full"] }
+
+# The profile that 'cargo dist' will build with
+[profile.dist]
+inherits = "release"
+lto = "thin"
+
+[features]
+default = ["webhooks"]
+events = ["slack-morphism"]
+webhooks = ["slack_api"]
 
 [dependencies.slack_api]
 default-features = false
 features = ["async", "reqwest", "with_rustls"]
 git = "https://github.com/ceejbot/slack-rs-api"
+optional = true
+
+[dependencies.slack-morphism]
+version = "2.5.0"
+features = ["axum", "signature-verifier"]
+optional = true

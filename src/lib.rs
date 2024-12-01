@@ -1,7 +1,7 @@
 #![allow(non_snake_case)]
 
 pub mod faces;
-pub use faces::*;
+pub use faces::{IsLoudbotIntegration, LoudbotFace};
 
 pub mod triggers;
 pub use triggers::*;
